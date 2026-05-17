@@ -252,11 +252,28 @@ def test_graph_profile_get_profile_merges_snapshot_with_existing_graph(monkeypat
     monkeypatch.setattr(graph_profile, "read_profile_from_graph", lambda: graph)
     monkeypatch.setattr(graph_profile, "save_profile_snapshot", lambda profile, _db_path=None: saved.update(profile))
 
-    merged = graph_profile.get_profile()
+    merged = graph_profile.get_profile(prefer_snapshot=False)
 
     assert merged["n"] == "Old Candidate"
     assert {skill["n"] for skill in merged["skills"]} == {"Python", "React"}
     assert saved["skills"][0]["n"] == "Python"
+
+
+def test_graph_profile_get_profile_prefers_saved_snapshot(monkeypatch):
+    from data.graph import profile as graph_profile
+
+    snapshot = {
+        "n": "Jane Doe",
+        "s": "Imported resume",
+        "skills": [{"id": "python", "n": "Python", "cat": "resume"}],
+        "projects": [],
+        "exp": [],
+    }
+
+    monkeypatch.setattr(graph_profile, "load_profile_snapshot", lambda _db_path=None: snapshot)
+    monkeypatch.setattr(graph_profile, "read_profile_from_graph", lambda: (_ for _ in ()).throw(RuntimeError("graph read should not block profile load")))
+
+    assert graph_profile.get_profile() == snapshot
 
 
 def test_graph_profile_manual_candidate_save_updates_snapshot(monkeypatch):
@@ -420,6 +437,39 @@ def test_graph_profile_deleted_project_does_not_rehydrate_from_graph(monkeypatch
     profile = graph_profile.read_profile_from_graph()
 
     assert profile["projects"] == []
+
+
+def test_graph_profile_prunes_orphan_project_stack_skills(monkeypatch):
+    from data.graph import profile as graph_profile
+
+    monkeypatch.setattr(graph_profile, "get_setting", lambda _key, default="", *_args: default)
+
+    profile = graph_profile.apply_profile_deletions({
+        "n": "Jane",
+        "skills": [
+            {"id": "sqlite", "n": "SQLite", "cat": "project_stack"},
+            {"id": "python", "n": "Python", "cat": "technical"},
+        ],
+        "projects": [],
+        "exp": [],
+    })
+
+    assert [skill["n"] for skill in profile["skills"]] == ["Python"]
+
+
+def test_graph_profile_keeps_project_stack_skills_still_used_by_projects(monkeypatch):
+    from data.graph import profile as graph_profile
+
+    monkeypatch.setattr(graph_profile, "get_setting", lambda _key, default="", *_args: default)
+
+    profile = graph_profile.apply_profile_deletions({
+        "n": "Jane",
+        "skills": [{"id": "sqlite", "n": "SQLite", "cat": "project_stack"}],
+        "projects": [{"id": "p1", "title": "Local DB", "stack": ["SQLite"]}],
+        "exp": [],
+    })
+
+    assert [skill["n"] for skill in profile["skills"]] == ["SQLite"]
 
 
 def test_graph_profile_delete_experience_accepts_role_company_label_when_id_is_missing(monkeypatch):

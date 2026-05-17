@@ -105,6 +105,34 @@ def _merge_graphs(primary: dict, fallback: dict) -> dict:
     return merged
 
 
+def _filter_stale_profile_nodes(graph: dict, profile_graph: dict) -> dict:
+    allowed_profile_ids = {str(node.get("id") or "") for node in profile_graph.get("nodes") or []}
+    candidate_owned_ids = {
+        str(edge.get("target") or "")
+        for edge in graph.get("edges") or []
+        if str(edge.get("source") or "").startswith("candidate:")
+        and str(edge.get("type") or "") in {"HAS_SKILL", "BUILT"}
+    }
+    remove_ids: set[str] = set()
+    for node in graph.get("nodes") or []:
+        node_id = str(node.get("id") or "")
+        node_type = str(node.get("type") or "")
+        subtitle = str(node.get("subtitle") or "").strip().lower()
+        if node_id in candidate_owned_ids and node_type in {"Skill", "Project"} and node_id not in allowed_profile_ids:
+            remove_ids.add(node_id)
+        elif node_type == "Skill" and subtitle == "project_stack" and node_id not in allowed_profile_ids:
+            remove_ids.add(node_id)
+    if not remove_ids:
+        return graph
+    nodes = [node for node in graph.get("nodes") or [] if str(node.get("id") or "") not in remove_ids]
+    edges = [
+        edge
+        for edge in graph.get("edges") or []
+        if str(edge.get("source") or "") not in remove_ids and str(edge.get("target") or "") not in remove_ids
+    ]
+    return {**graph, "nodes": nodes, "edges": edges}
+
+
 def graph_stats_payload(*, repair: bool = False) -> dict:
     repo = create_repository()
     errors: list[str] = []
@@ -134,7 +162,8 @@ def graph_stats_payload(*, repair: bool = False) -> dict:
         errors,
         default={},
     )
-    graph = _merge_graphs(graph, _profile_snapshot_graph(profile_snapshot))
+    profile_graph = _profile_snapshot_graph(profile_snapshot)
+    graph = _merge_graphs(_filter_stale_profile_nodes(graph, profile_graph), profile_graph)
     embedding = embedding_space(repo)
     if embedding.get("error"):
         errors.append(f"embedding: {embedding['error']}")

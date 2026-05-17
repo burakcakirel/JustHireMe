@@ -21,7 +21,7 @@ export function ProfileView({ api, setView }: { api: ApiFetch; setView: (v: View
   const [expandedProfileList, setExpandedProfileList] = useState(false);
   const [deletingItems, setDeletingItems] = useState<Set<string>>(new Set());
 
-  const fetchProfile = useCallback(async (options?: { errorPrefix?: string }) => {
+  const fetchProfile = useCallback(async (options?: { errorPrefix?: string; suppressError?: boolean }) => {
     try {
       const r = await api(`/api/v1/profile`);
       if (!r.ok) throw new Error(`Profile load failed (${r.status})`);
@@ -32,7 +32,9 @@ export function ProfileView({ api, setView }: { api: ApiFetch; setView: (v: View
     } catch (err: any) {
       console.error("Profile load failed:", err);
       const message = err?.message || "Profile load failed";
-      setProfileErr(options?.errorPrefix ? `${options.errorPrefix}: ${message}` : message);
+      if (!options?.suppressError) {
+        setProfileErr(options?.errorPrefix ? `${options.errorPrefix}: ${message}` : message);
+      }
       return false;
     }
   }, [api]);
@@ -70,7 +72,7 @@ export function ProfileView({ api, setView }: { api: ApiFetch; setView: (v: View
       const body = await res.json().catch(() => ({}));
       if (!res.ok) throw new Error(body.detail || `Delete failed (${res.status})`);
       setProfileErr(null);
-      await fetchProfile({ errorPrefix: "Deleted, but profile refresh failed" });
+      void fetchProfile({ suppressError: true });
       window.dispatchEvent(new CustomEvent("graph-refresh"));
     } catch (err: any) {
       console.error("Delete error:", err);

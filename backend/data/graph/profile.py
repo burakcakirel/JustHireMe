@@ -252,6 +252,30 @@ def apply_profile_deletions(profile: dict | None, db_path: str | None = None) ->
     ]
     for key in ["education", "certifications", "achievements"]:
         profile[key] = [item for item in profile.get(key, []) if not _is_deleted(key, _entry_text(item), hash_id(_entry_text(item)), db_path=db_path)]
+    return _prune_orphan_project_stack_skills(profile)
+
+
+def _prune_orphan_project_stack_skills(profile: dict) -> dict:
+    project_stack_terms: set[str] = set()
+    for project in profile.get("projects", []) or []:
+        if not isinstance(project, dict):
+            continue
+        for term in stack_list(project.get("stack")):
+            key = _norm_key(term)
+            if key:
+                project_stack_terms.add(key)
+
+    skills = []
+    for item in profile.get("skills", []) or []:
+        if not isinstance(item, dict):
+            skills.append(item)
+            continue
+        category = str(item.get("cat") or item.get("category") or "").strip().lower()
+        name = str(item.get("n") or item.get("name") or item.get("title") or "").strip()
+        if category == "project_stack" and _norm_key(name) not in project_stack_terms:
+            continue
+        skills.append(item)
+    profile["skills"] = skills
     return profile
 
 
@@ -343,8 +367,10 @@ def read_profile_from_graph() -> dict:
     })
 
 
-def get_profile(db_path: str | None = None) -> dict:
+def get_profile(db_path: str | None = None, *, prefer_snapshot: bool = True) -> dict:
     snapshot = load_profile_snapshot(db_path)
+    if prefer_snapshot and profile_has_data(snapshot):
+        return snapshot
     try:
         profile = normal_profile(read_profile_from_graph())
     except Exception as exc:

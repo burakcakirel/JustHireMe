@@ -117,6 +117,30 @@ class TestGraphStructure(unittest.TestCase):
         self.assertTrue(is_bad_vector_label("Failed to fetch project metadata"))
         self.assertFalse(is_bad_vector_label("DryRunVisualised"))
 
+    def test_profile_graph_filter_removes_stale_deleted_profile_nodes(self):
+        from graph_service.stats import _filter_stale_profile_nodes, _profile_snapshot_graph
+
+        graph = {
+            "nodes": [
+                {"id": "candidate:old", "label": "Candidate", "type": "Candidate"},
+                {"id": "project:deleted", "label": "Deleted Project", "type": "Project"},
+                {"id": "skill:orphan", "label": "SQLite", "type": "Skill", "subtitle": "project_stack"},
+                {"id": "job:1", "label": "Job", "type": "JobLead"},
+            ],
+            "edges": [
+                {"source": "candidate:old", "target": "project:deleted", "type": "BUILT"},
+                {"source": "candidate:old", "target": "skill:orphan", "type": "HAS_SKILL"},
+                {"source": "job:1", "target": "skill:orphan", "type": "REQUIRES"},
+            ],
+        }
+        profile_graph = _profile_snapshot_graph({"n": "Candidate", "skills": [], "projects": [], "exp": []})
+
+        filtered = _filter_stale_profile_nodes(graph, profile_graph)
+
+        self.assertNotIn("project:deleted", {node["id"] for node in filtered["nodes"]})
+        self.assertNotIn("skill:orphan", {node["id"] for node in filtered["nodes"]})
+        self.assertEqual(filtered["edges"], [])
+
 
 class TestGraphInvoke(unittest.TestCase):
     def setUp(self):
