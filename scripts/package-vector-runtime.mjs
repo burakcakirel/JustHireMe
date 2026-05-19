@@ -19,9 +19,7 @@ const entries = [
   "lance_namespace",
   "lance_namespace_urllib3_client",
   "pyarrow",
-  "pyarrow.libs",
   "numpy",
-  "numpy.libs",
   "packaging",
   "pydantic",
   "pydantic_core",
@@ -34,6 +32,11 @@ const entries = [
   "deprecation.py",
   "typing_extensions.py",
   "six.py",
+];
+
+const optionalEntries = [
+  "pyarrow.libs",
+  "numpy.libs",
 ];
 
 const distInfoPrefixes = [
@@ -119,6 +122,12 @@ mkdirSync(releaseAssetsDir, { recursive: true });
 
 for (const entry of entries) {
   copyEntry(entry);
+}
+
+for (const entry of optionalEntries) {
+  if (existsSync(join(sitePackages, entry))) {
+    copyEntry(entry);
+  }
 }
 
 for (const prefix of distInfoPrefixes) {

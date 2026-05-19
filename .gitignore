@@ -84,6 +84,7 @@ scratch/
 # Generated artifacts and local analysis output
 .codex-temp-appdata/
 .codex-temp-sidecar/
+.codex-temp-vector-runtime/
 .codex-video-analysis/
 release-assets/
 release-assets-*/
