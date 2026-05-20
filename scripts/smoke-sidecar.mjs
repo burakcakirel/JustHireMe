@@ -337,6 +337,9 @@ if (!explicitSidecar && !existsSync(manifestPath)) {
 }
 
 const manifest = explicitSidecar ? {} : readJson(manifestPath);
+if (!explicitSidecar && manifest.sidecarLayout !== "onefile") {
+  fail(`Release sidecar must be onefile; got ${manifest.sidecarLayout || "missing"} in ${manifestPath}`);
+}
 const { sidecar, cwd, cleanupDir } = explicitSidecar || resolveSidecar(manifest);
 const stdoutLines = [];
 const stderrLines = [];

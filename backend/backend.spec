@@ -9,7 +9,9 @@ block_cipher = None
 backend_root = Path("backend").resolve()
 if not (backend_root / "main.py").exists():
     backend_root = Path(".").resolve()
-onedir_sidecar = sys.platform == "win32"
+# Keep every desktop installer slim: heavy vector/browser runtimes are shipped
+# through the first-run runtime pack, not as PyInstaller onedir payloads.
+onedir_sidecar = False
 macos_entitlements = backend_root.parent / "src-tauri" / "macos-entitlements.plist"
 exe_kwargs = {}
 if sys.platform == "darwin":

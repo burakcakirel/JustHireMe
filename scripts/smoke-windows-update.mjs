@@ -16,10 +16,13 @@ function fail(message) {
 function staticChecks() {
   const hooksPath = join(repoRoot, "src-tauri", "windows", "nsis-hooks.nsh");
   const hooks = readFileSync(hooksPath, "utf8");
-  for (const required of ["jhm-sidecar-next.exe", "backend.exe", "$INSTDIR\\_internal", "taskkill.exe"]) {
+  for (const required of ["jhm-sidecar-next.exe", "backend.exe", "taskkill.exe"]) {
     if (!hooks.includes(required)) {
       fail(`NSIS preinstall hook is missing ${required}`);
     }
+  }
+  if (!hooks.includes("$INSTDIR\\_internal")) {
+    fail("NSIS preinstall hook must remove stale _internal directories from old onedir releases.");
   }
   const tauriConfigPath = join(repoRoot, "src-tauri", "tauri.conf.json");
   const tauriConfig = JSON.parse(readFileSync(tauriConfigPath, "utf8"));
@@ -270,8 +273,7 @@ async function smokeInstalledSidecar(installDir, appDataDir) {
   const sidecar = join(installDir, "jhm-sidecar-next.exe");
   const runtime = join(installDir, "_internal");
   if (!existsSync(sidecar)) fail(`Missing installed sidecar: ${sidecar}`);
-  if (!existsSync(join(runtime, "python313.dll"))) fail(`Missing installed runtime DLL: ${join(runtime, "python313.dll")}`);
-  if (!existsSync(join(runtime, "base_library.zip"))) fail(`Missing installed Python library: ${join(runtime, "base_library.zip")}`);
+  if (existsSync(runtime)) fail(`Slim installer must not include bundled PyInstaller runtime directory: ${runtime}`);
 
   await removeWithRetry(appDataDir);
   mkdirSync(appDataDir, { recursive: true });

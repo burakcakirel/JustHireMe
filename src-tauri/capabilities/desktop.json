@@ -10,7 +10,9 @@
   ],
   "permissions": [
     "core:default",
+    "notification:default",
     "opener:default",
+    "process:allow-restart",
     "updater:default"
   ]
 }

@@ -214,10 +214,8 @@ jobs:
             Format-Table -AutoSize
           $backendTotal = (Get-ChildItem -Path src-tauri\resources\backend\ -Recurse -File |
             Measure-Object -Property Length -Sum).Sum / 1MB
-          $runtimeTotal = (Get-ChildItem -Path src-tauri\resources\sidecar-internal\ -Recurse -File |
-            Measure-Object -Property Length -Sum).Sum / 1MB
           Write-Host "Sidecar backend size: $([math]::Round($backendTotal, 1)) MB"
-          Write-Host "Sidecar runtime size: $([math]::Round($runtimeTotal, 1)) MB"
+          Write-Host "Installer sidecar is onefile; heavy runtime stays in the OTA runtime pack."
           Get-Content src-tauri\resources\backend\sidecar-manifest.json
 
       - name: Smoke sidecar startup
@@ -231,7 +229,6 @@ jobs:
           name: backend-sidecar-windows
           path: |
             src-tauri/resources/backend/
-            src-tauri/resources/sidecar-internal/
           retention-days: 1
 
       - name: Upload OTA runtime assets
@@ -288,9 +285,8 @@ jobs:
           set -euo pipefail
           find src-tauri/resources/backend -maxdepth 3 -type f -print
           backend_kb="$(du -sk src-tauri/resources/backend | awk '{print $1}')"
-          runtime_kb="$(du -sk src-tauri/resources/sidecar-internal | awk '{print $1}')"
           echo "Sidecar backend size: $((backend_kb / 1024)) MB"
-          echo "Sidecar runtime size: $((runtime_kb / 1024)) MB"
+          echo "Installer sidecar is onefile; heavy runtime stays in the OTA runtime pack."
           cat src-tauri/resources/backend/sidecar-manifest.json
 
       - name: Smoke sidecar startup
@@ -304,7 +300,6 @@ jobs:
           name: backend-sidecar-macos
           path: |
             src-tauri/resources/backend/
-            src-tauri/resources/sidecar-internal/
           retention-days: 1
 
       - name: Upload OTA runtime assets
@@ -361,9 +356,8 @@ jobs:
           set -euo pipefail
           find src-tauri/resources/backend -maxdepth 3 -type f -print
           backend_kb="$(du -sk src-tauri/resources/backend | awk '{print $1}')"
-          runtime_kb="$(du -sk src-tauri/resources/sidecar-internal | awk '{print $1}')"
           echo "Sidecar backend size: $((backend_kb / 1024)) MB"
-          echo "Sidecar runtime size: $((runtime_kb / 1024)) MB"
+          echo "Installer sidecar is onefile; heavy runtime stays in the OTA runtime pack."
           cat src-tauri/resources/backend/sidecar-manifest.json
 
       - name: Smoke sidecar startup
@@ -377,7 +371,6 @@ jobs:
           name: backend-sidecar-linux
           path: |
             src-tauri/resources/backend/
-            src-tauri/resources/sidecar-internal/
           retention-days: 1
 
       - name: Upload OTA runtime assets
@@ -434,12 +427,8 @@ jobs:
         run: |
           $triple = (rustc -vV | Select-String "host:").ToString().Split()[1].Trim()
           $sidecar = "src-tauri\resources\backend\jhm-sidecar-next-$triple.exe"
-          $runtime = "src-tauri\resources\sidecar-internal\python313.dll"
           if (-not (Test-Path $sidecar)) {
             throw "Sidecar not found at $sidecar"
-          }
-          if (-not (Test-Path $runtime)) {
-            throw "Sidecar runtime not found at $runtime"
           }
           if (-not (Test-Path "src-tauri\resources\backend\sidecar-manifest.json")) {
             throw "Sidecar manifest not found."
@@ -607,8 +596,6 @@ jobs:
           set -euo pipefail
           triple="$(rustc -vV | awk '/host:/ {print $2}')"
           sidecar="src-tauri/resources/backend/jhm-sidecar-next-${triple}"
-          mkdir -p src-tauri/resources/sidecar-internal
-          touch src-tauri/resources/sidecar-internal/.release-placeholder
           if [ ! -f "$sidecar" ]; then
             find src-tauri/resources -maxdepth 3 -type f -print
             echo "Sidecar not found at $sidecar" >&2
@@ -625,16 +612,8 @@ jobs:
           set -euo pipefail
           triple="$(rustc -vV | awk '/host:/ {print $2}')"
           sidecar="src-tauri/resources/backend/jhm-sidecar-next-${triple}"
-          runtime="src-tauri/resources/sidecar-internal/base_library.zip"
-          layout="$(python -c 'import json; print(json.load(open("src-tauri/resources/backend/sidecar-manifest.json")).get("sidecarLayout", "onedir"))')"
-          mkdir -p src-tauri/resources/sidecar-internal
-          touch src-tauri/resources/sidecar-internal/.release-placeholder
           if [ ! -f "$sidecar" ]; then
             echo "Sidecar not found at $sidecar" >&2
-            exit 1
-          fi
-          if [ "$layout" = "onedir" ] && [ ! -f "$runtime" ]; then
-            echo "Sidecar runtime not found at $runtime" >&2
             exit 1
           fi
           if [ ! -f "src-tauri/resources/backend/sidecar-manifest.json" ]; then
@@ -652,7 +631,7 @@ jobs:
           triple="$(rustc -vV | awk '/host:/ {print $2}')"
           sidecar="src-tauri/resources/backend/jhm-sidecar-next-${triple}"
           chmod +x "$sidecar"
-          xattr -cr src-tauri/resources/backend src-tauri/resources/sidecar-internal || true
+          xattr -cr src-tauri/resources/backend || true
           codesign --force --sign - --entitlements src-tauri/macos-entitlements.plist "$sidecar"
 
       - name: Verify updater signing secrets
@@ -793,8 +772,6 @@ jobs:
           set -euo pipefail
           triple="$(rustc -vV | awk '/host:/ {print $2}')"
           sidecar="src-tauri/resources/backend/jhm-sidecar-next-${triple}"
-          mkdir -p src-tauri/resources/sidecar-internal
-          touch src-tauri/resources/sidecar-internal/.release-placeholder
           if [ ! -f "$sidecar" ]; then
             find src-tauri/resources -maxdepth 3 -type f -print
             echo "Sidecar not found at $sidecar" >&2
@@ -811,16 +788,8 @@ jobs:
           set -euo pipefail
           triple="$(rustc -vV | awk '/host:/ {print $2}')"
           sidecar="src-tauri/resources/backend/jhm-sidecar-next-${triple}"
-          runtime="src-tauri/resources/sidecar-internal/base_library.zip"
-          layout="$(python -c 'import json; print(json.load(open("src-tauri/resources/backend/sidecar-manifest.json")).get("sidecarLayout", "onedir"))')"
-          mkdir -p src-tauri/resources/sidecar-internal
-          touch src-tauri/resources/sidecar-internal/.release-placeholder
           if [ ! -f "$sidecar" ]; then
             echo "Sidecar not found at $sidecar" >&2
-            exit 1
-          fi
-          if [ "$layout" = "onedir" ] && [ ! -f "$runtime" ]; then
-            echo "Sidecar runtime not found at $runtime" >&2
             exit 1
           fi
           if [ ! -f "src-tauri/resources/backend/sidecar-manifest.json" ]; then

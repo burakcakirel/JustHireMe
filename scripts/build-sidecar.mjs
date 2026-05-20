@@ -1,5 +1,5 @@
 import { spawn } from "node:child_process";
-import { chmodSync, copyFileSync, cpSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
+import { chmodSync, copyFileSync, existsSync, mkdirSync, readdirSync, readFileSync, rmSync, statSync, writeFileSync } from "node:fs";
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import process from "node:process";
@@ -178,16 +178,15 @@ const sidecarLayout = existsSync(internalSource) ? "onedir" : "onefile";
 if (!existsSync(source)) {
   throw new Error(`Expected PyInstaller sidecar was not created: ${source}`);
 }
+if (sidecarLayout !== "onefile") {
+  throw new Error("Release sidecars must be PyInstaller onefile builds; bundled _internal runtimes make installers too large.");
+}
 
 await rmWithRetries(sidecarDir, { recursive: true, force: true });
 mkdirSync(sidecarDir, { recursive: true });
 await rmWithRetries(sidecarInternalDir, { recursive: true, force: true });
 mkdirSync(sidecarInternalDir, { recursive: true });
-if (sidecarLayout === "onedir") {
-  cpSync(internalSource, sidecarInternalDir, { recursive: true });
-} else {
-  writeFileSync(join(sidecarInternalDir, ".onefile-sidecar"), "PyInstaller onefile sidecar has no external runtime directory.\n", "utf8");
-}
+writeFileSync(join(sidecarInternalDir, ".onefile-sidecar"), "PyInstaller onefile sidecar has no external runtime directory.\n", "utf8");
 copyFileSync(source, target);
 if (process.platform !== "win32") {
   chmodSync(target, 0o755);

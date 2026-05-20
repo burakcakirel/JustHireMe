@@ -1,4 +1,5 @@
 import ast
+import json
 import tomllib
 from pathlib import Path
 
@@ -9,6 +10,10 @@ ROOT = BACKEND.parent
 
 def _read(path: Path) -> str:
     return path.read_text(encoding="utf-8")
+
+
+def _json(path: Path) -> dict:
+    return json.loads(_read(path))
 
 
 def _handler_catches_exception(handler: ast.ExceptHandler) -> bool:
@@ -115,6 +120,34 @@ def test_runtime_pack_installs_browser_runtime_for_clean_ci_checkout():
     assert "PLAYWRIGHT_BROWSERS_PATH" in runtime_pack
     assert '"playwright", "install", "chromium"' in runtime_pack
     assert "hasChromiumRuntime" in runtime_pack
+
+
+def test_tauri_relaunch_acl_is_granted():
+    for name in ("default.json", "desktop.json"):
+        capability = _json(ROOT / "src-tauri" / "capabilities" / name)
+        permissions = set(capability["permissions"])
+        assert "process:allow-restart" in permissions
+
+
+def test_release_installer_stays_slim_and_runtime_pack_is_ota_only():
+    tauri_config = _json(ROOT / "src-tauri" / "tauri.conf.json")
+    bundle = tauri_config["bundle"]
+    assert "resources" not in bundle or "resources/sidecar-internal" not in str(bundle["resources"])
+
+    backend_spec = _read(BACKEND / "backend.spec")
+    assert "onedir_sidecar = False" in backend_spec
+
+    build_sidecar = _read(ROOT / "scripts/build-sidecar.mjs")
+    assert "Release sidecars must be PyInstaller onefile builds" in build_sidecar
+
+    windows_smoke = _read(ROOT / "scripts/smoke-windows-update.mjs")
+    assert "Slim installer must not include bundled PyInstaller runtime directory" in windows_smoke
+    assert "Missing installed runtime DLL" not in windows_smoke
+
+    release = _read(ROOT / ".github" / "workflows" / "release.yml")
+    assert "src-tauri/resources/sidecar-internal/" not in release
+    assert "python313.dll" not in release
+    assert "base_library.zip" not in release
 
 
 def test_release_includes_frozen_backend_and_windows_smoke():

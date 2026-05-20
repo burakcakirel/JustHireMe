@@ -1,5 +1,11 @@
 # Changelog
 
+## 1.0.18 - 2026-05-20
+
+- Fixed the Tauri ACL regression that blocked runtime-pack and updater restarts.
+- Restored the Windows installer to a slim onefile sidecar and kept the heavy vector/browser runtime in the first-run OTA pack.
+- Added release guardrails so CI fails if `_internal` is bundled into installers again.
+
 ## 1.0.2 - 2026-05-18
 
 - Added the execution and stability records to the repository release branch.
