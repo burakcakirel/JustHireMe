@@ -344,6 +344,27 @@ fn local_venv_python_path(backend_dir: &Path) -> Option<PathBuf> {
         .find(|path| path.exists())
 }
 
+fn bundled_runtime_pack_path(app: &AppHandle) -> Option<PathBuf> {
+    let resource_dir = app.path().resource_dir().ok()?;
+    let asset = if cfg!(target_os = "windows") {
+        "JustHireMe-runtime-pack-windows.zip"
+    } else if cfg!(target_os = "macos") {
+        "JustHireMe-runtime-pack-macos.zip"
+    } else {
+        "JustHireMe-runtime-pack-linux.zip"
+    };
+    [
+        resource_dir
+            .join("resources")
+            .join("runtime-pack")
+            .join(asset),
+        resource_dir.join("runtime-pack").join(asset),
+        resource_dir.join(asset),
+    ]
+    .into_iter()
+    .find(|path| path.exists())
+}
+
 #[cfg(debug_assertions)]
 fn debug_backend_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -641,6 +662,12 @@ fn spawn_sidecar(handle: AppHandle, restart_count: u8) -> Result<(), String> {
                 bundled_browsers_path.to_string_lossy().to_string(),
             );
         }
+    }
+    if let Some(runtime_pack) = bundled_runtime_pack_path(&handle) {
+        let runtime_pack = runtime_pack.to_string_lossy().to_string();
+        sidecar_cmd = sidecar_cmd
+            .env("JHM_BUNDLED_RUNTIME_PACK_URL", runtime_pack.clone())
+            .env("JHM_RUNTIME_PACK_URL", runtime_pack);
     }
     if let Ok(app_data_dir) = handle.path().app_data_dir() {
         let browser_cache = app_data_dir.join("browser-runtime").join("ms-playwright");

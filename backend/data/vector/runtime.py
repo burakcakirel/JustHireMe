@@ -85,6 +85,16 @@ def vector_runtime_asset_name() -> str:
 def runtime_pack_url() -> str:
     return os.environ.get(
         "JHM_RUNTIME_PACK_URL",
+        os.environ.get(
+            "JHM_BUNDLED_RUNTIME_PACK_URL",
+            f"{_RELEASE_DOWNLOAD_BASE}/{runtime_pack_asset_name()}",
+        ),
+    )
+
+
+def release_runtime_pack_url() -> str:
+    return os.environ.get(
+        "JHM_RELEASE_RUNTIME_PACK_URL",
         f"{_RELEASE_DOWNLOAD_BASE}/{runtime_pack_asset_name()}",
     )
 
@@ -269,6 +279,18 @@ def _download(url: str, archive_path: Path) -> None:
         _stream_to_file(response, target, total)
 
 
+def _runtime_pack_sources() -> list[str]:
+    sources: list[str] = []
+    for candidate in (
+        os.environ.get("JHM_BUNDLED_RUNTIME_PACK_URL"),
+        os.environ.get("JHM_RUNTIME_PACK_URL"),
+        release_runtime_pack_url(),
+    ):
+        if candidate and candidate not in sources:
+            sources.append(candidate)
+    return sources
+
+
 def _copy_file_with_progress(source: Path, target: Path) -> None:
     total = source.stat().st_size
     with source.open("rb") as reader, target.open("wb") as writer:
@@ -370,7 +392,8 @@ def install_vector_runtime() -> Path:
 
         runtime_dir.parent.mkdir(parents=True, exist_ok=True)
         browser_dir.parent.mkdir(parents=True, exist_ok=True)
-        url = vector_runtime_url() if _legacy_vector_runtime_override() else runtime_pack_url()
+        sources = [vector_runtime_url()] if _legacy_vector_runtime_override() else _runtime_pack_sources()
+        url = sources[0]
         _set_progress(
             status="starting",
             message="Preparing JustHireMe runtime pack install.",
@@ -385,7 +408,19 @@ def install_vector_runtime() -> Path:
                 tmp_dir = Path(tmp)
                 archive_path = tmp_dir / (vector_runtime_asset_name() if _legacy_vector_runtime_override() else runtime_pack_asset_name())
                 try:
-                    _download(url, archive_path)
+                    download_errors: list[str] = []
+                    for source in sources:
+                        url = source
+                        try:
+                            _download(source, archive_path)
+                            break
+                        except Exception as exc:
+                            download_errors.append(f"{source}: {type(exc).__name__}: {exc}")
+                            if archive_path.exists():
+                                archive_path.unlink()
+                    else:
+                        details = "; ".join(download_errors) or "no runtime pack source was configured"
+                        raise RuntimeError(details)
                     extract_dir = tmp_dir / "extract"
                     extract_dir.mkdir(parents=True, exist_ok=True)
                     _set_progress(
@@ -397,7 +432,7 @@ def install_vector_runtime() -> Path:
                 except Exception as exc:
                     error = (
                         "The required JustHireMe runtime pack must be installed before the app can continue. "
-                        f"Could not download it from {url}."
+                        f"Could not install it from {url}. Details: {exc}"
                     )
                     _set_progress(status="error", message=error, error=error)
                     raise RuntimeError(error) from exc

@@ -50,6 +50,9 @@ function staticChecks() {
 }
 
 function localVectorRuntimeArchive() {
+  if (process.env.JHM_SMOKE_RUNTIME_PACK_ARCHIVE) {
+    return process.env.JHM_SMOKE_RUNTIME_PACK_ARCHIVE;
+  }
   const runtimePack = join(repoRoot, "release-assets", "JustHireMe-runtime-pack-windows.zip");
   return existsSync(runtimePack)
     ? runtimePack

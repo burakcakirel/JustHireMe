@@ -419,6 +419,24 @@ jobs:
           name: frontend-dist
           path: dist/
 
+      - name: Download Windows runtime pack
+        uses: actions/download-artifact@v8
+        with:
+          name: release-assets-runtime-windows
+          path: runtime-assets/
+
+      - name: Bundle Windows runtime pack
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          $asset = "runtime-assets\JustHireMe-runtime-pack-windows.zip"
+          if (-not (Test-Path $asset)) {
+            throw "Windows runtime pack not found at $asset"
+          }
+          New-Item -ItemType Directory -Path "src-tauri\resources\runtime-pack" -Force | Out-Null
+          Copy-Item $asset "src-tauri\resources\runtime-pack\JustHireMe-runtime-pack-windows.zip" -Force
+          Write-Host "Bundled Windows runtime pack: $((Get-Item $asset).Length / 1MB) MB"
+
       - name: Run Rust unit tests
         run: cd src-tauri && cargo test --lib
 
@@ -434,7 +452,7 @@ jobs:
             throw "Sidecar manifest not found."
           }
           Write-Host "Sidecar verified: $sidecar ($(( Get-Item $sidecar ).Length / 1MB) MB)"
-          Write-Host "The mandatory runtime pack is shipped as a single OTA asset, not bundled into the installer."
+          Write-Host "The mandatory runtime pack is bundled into the installer and also published as an OTA recovery asset."
 
       - name: Verify updater signing secrets
         env:
@@ -458,6 +476,8 @@ jobs:
 
       - name: Smoke installed Windows package
         shell: pwsh
+        env:
+          JHM_SMOKE_RUNTIME_PACK_ARCHIVE: src-tauri\resources\runtime-pack\JustHireMe-runtime-pack-windows.zip
         run: |
           $ErrorActionPreference = "Stop"
           $installer = Get-ChildItem -Path "src-tauri\target\release\bundle\nsis" -Filter "*.exe" -File -Recurse |
@@ -474,6 +494,7 @@ jobs:
         shell: pwsh
         env:
           GH_TOKEN: ${{ github.token }}
+          JHM_SMOKE_RUNTIME_PACK_ARCHIVE: src-tauri\resources\runtime-pack\JustHireMe-runtime-pack-windows.zip
         run: |
           $ErrorActionPreference = "Stop"
           $currentTag = "${{ github.ref_name }}"
@@ -517,6 +538,9 @@ jobs:
 
       - name: Smoke packaged Windows sidecar
         shell: pwsh
+        env:
+          JHM_VECTOR_RUNTIME_REQUIRED: "1"
+          JHM_SMOKE_RUNTIME_PACK_ARCHIVE: src-tauri\resources\runtime-pack\JustHireMe-runtime-pack-windows.zip
         run: |
           $ErrorActionPreference = "Stop"
           $triple = (rustc -vV | Select-String "host:").ToString().Split(" ")[1].Trim()
@@ -590,6 +614,25 @@ jobs:
           name: frontend-dist
           path: dist/
 
+      - name: Download macOS runtime pack
+        uses: actions/download-artifact@v8
+        with:
+          name: release-assets-runtime-macos
+          path: runtime-assets/
+
+      - name: Bundle macOS runtime pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          asset="runtime-assets/JustHireMe-runtime-pack-macos.zip"
+          if [ ! -f "$asset" ]; then
+            echo "macOS runtime pack not found at $asset" >&2
+            exit 1
+          fi
+          mkdir -p src-tauri/resources/runtime-pack
+          cp "$asset" src-tauri/resources/runtime-pack/JustHireMe-runtime-pack-macos.zip
+          echo "Bundled macOS runtime pack: $(du -h "$asset" | awk '{print $1}')"
+
       - name: Prepare sidecar for Rust tests
         shell: bash
         run: |
@@ -622,7 +665,7 @@ jobs:
           fi
           chmod +x "$sidecar"
           echo "Sidecar verified: $sidecar ($(du -h "$sidecar" | awk '{print $1}'))"
-          echo "The mandatory runtime pack is shipped as a single OTA asset, not bundled into the installer."
+          echo "The mandatory runtime pack is bundled into the installer and also published as an OTA recovery asset."
 
       - name: Prepare macOS sidecar permissions
         shell: bash
@@ -656,6 +699,9 @@ jobs:
 
       - name: Smoke packaged macOS sidecar
         shell: bash
+        env:
+          JHM_VECTOR_RUNTIME_REQUIRED: "1"
+          JHM_SMOKE_RUNTIME_PACK_ARCHIVE: src-tauri/resources/runtime-pack/JustHireMe-runtime-pack-macos.zip
         run: |
           set -euo pipefail
           app_path="$(find src-tauri/target/release/bundle/macos -maxdepth 1 -name "*.app" -type d -print -quit)"
@@ -766,6 +812,25 @@ jobs:
           name: frontend-dist
           path: dist/
 
+      - name: Download Linux runtime pack
+        uses: actions/download-artifact@v8
+        with:
+          name: release-assets-runtime-linux
+          path: runtime-assets/
+
+      - name: Bundle Linux runtime pack
+        shell: bash
+        run: |
+          set -euo pipefail
+          asset="runtime-assets/JustHireMe-runtime-pack-linux.zip"
+          if [ ! -f "$asset" ]; then
+            echo "Linux runtime pack not found at $asset" >&2
+            exit 1
+          fi
+          mkdir -p src-tauri/resources/runtime-pack
+          cp "$asset" src-tauri/resources/runtime-pack/JustHireMe-runtime-pack-linux.zip
+          echo "Bundled Linux runtime pack: $(du -h "$asset" | awk '{print $1}')"
+
       - name: Prepare sidecar for Rust tests
         shell: bash
         run: |
@@ -798,7 +863,7 @@ jobs:
           fi
           chmod +x "$sidecar"
           echo "Sidecar verified: $sidecar ($(du -h "$sidecar" | awk '{print $1}'))"
-          echo "The mandatory runtime pack is shipped as a single OTA asset, not bundled into the installer."
+          echo "The mandatory runtime pack is bundled into the installer and also published as an OTA recovery asset."
 
       - name: Verify updater signing secrets
         env:

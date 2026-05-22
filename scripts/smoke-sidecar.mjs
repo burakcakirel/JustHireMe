@@ -40,7 +40,7 @@ function runtimePackAssetName() {
 }
 
 function localRuntimePackArchive() {
-  return join(repoRoot, "release-assets", runtimePackAssetName());
+  return process.env.JHM_SMOKE_RUNTIME_PACK_ARCHIVE || join(repoRoot, "release-assets", runtimePackAssetName());
 }
 
 function localVectorRuntimeArchive() {
