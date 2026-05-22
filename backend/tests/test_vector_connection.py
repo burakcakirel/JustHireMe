@@ -13,7 +13,7 @@ def test_vector_store_uses_jhm_app_data_dir(monkeypatch, tmp_path):
         connect=lambda path: calls.append(path) or types.SimpleNamespace()
     )
     monkeypatch.setitem(sys.modules, "lancedb", fake_lancedb)
-    monkeypatch.setenv("JHM_APP_DATA_DIR", str(tmp_path / "roaming-app-data"))
+    monkeypatch.setenv("JHM_APP_DATA_DIR", str(tmp_path / "roaming-app-data" / "JustHireMe"))
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local-app-data"))
 
     from data.vector import connection
@@ -343,3 +343,71 @@ def test_runtime_payload_does_not_block_app_for_installed_pyo3_degraded_state(mo
     assert payload["required"] is False
     assert payload["restart_required"] is False
     assert "restart_required" not in payload["vector"]
+
+
+def test_runtime_payload_does_not_import_vector_connection_when_unloaded(monkeypatch):
+    from api.routers import runtime as runtime_router
+
+    sys.modules.pop("data.vector.connection", None)
+    monkeypatch.setattr(runtime_router, "vector_runtime_status", lambda: {"status": "installed", "ready": True})
+    monkeypatch.setattr(
+        runtime_router,
+        "vector_runtime_progress",
+        lambda: {"status": "installed", "active": False, "error": ""},
+    )
+    monkeypatch.setattr(runtime_router, "_LAST_SYNC", None)
+    monkeypatch.setattr(runtime_router, "_LAST_ERROR", "")
+    monkeypatch.setattr(runtime_router, "_INSTALL_JOB", None)
+
+    payload = runtime_router._runtime_payload()
+
+    assert payload["ready"] is True
+    assert payload["vector"] == {"status": "initializing", "tables": []}
+    assert "data.vector.connection" not in sys.modules
+
+
+def test_vector_package_runtime_import_does_not_eagerly_import_connection():
+    for key in list(sys.modules):
+        if key == "data.vector" or key.startswith("data.vector."):
+            sys.modules.pop(key, None)
+
+    import data.vector.runtime  # noqa: F401
+
+    assert "data.vector.connection" not in sys.modules
+
+
+def test_health_vector_check_does_not_import_connection_when_runtime_ready(monkeypatch):
+    from api.routers import health
+    from data.vector import runtime as vector_runtime
+
+    sys.modules.pop("data.vector.connection", None)
+    monkeypatch.setattr(vector_runtime, "vector_runtime_status", lambda: {"status": "installed", "ready": True})
+
+    status = health._check_vector(repo=types.SimpleNamespace())
+
+    assert status == {"status": "ok", "tables": [], "mode": "not_loaded"}
+    assert "data.vector.connection" not in sys.modules
+
+
+def test_runtime_payload_prioritizes_restart_required_over_ready(monkeypatch):
+    from api.routers import runtime as runtime_router
+
+    fake_connection = types.SimpleNamespace(
+        vector_status=lambda refresh=False: {"status": "disabled", "tables": [], "restart_required": True}
+    )
+    monkeypatch.setitem(sys.modules, "data.vector.connection", fake_connection)
+    monkeypatch.setattr(runtime_router, "vector_runtime_status", lambda: {"status": "installed", "ready": True})
+    monkeypatch.setattr(
+        runtime_router,
+        "vector_runtime_progress",
+        lambda: {"status": "installed", "active": False, "error": ""},
+    )
+    monkeypatch.setattr(runtime_router, "_LAST_SYNC", None)
+    monkeypatch.setattr(runtime_router, "_LAST_ERROR", "")
+    monkeypatch.setattr(runtime_router, "_INSTALL_JOB", None)
+
+    payload = runtime_router._runtime_payload()
+
+    assert payload["ready"] is False
+    assert payload["required"] is False
+    assert payload["restart_required"] is True

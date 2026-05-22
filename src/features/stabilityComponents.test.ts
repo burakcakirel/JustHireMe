@@ -57,6 +57,8 @@ describe("FIX.md frontend stability contracts", () => {
     expect(semanticRuntimePrompt).toContain("Install required runtime pack");
     expect(semanticRuntimePrompt).toContain("Restart JustHireMe");
     expect(semanticRuntimePrompt).toContain("Playwright Chromium");
+    expect(semanticRuntimePrompt).toContain("RUNTIME_STATUS_TIMEOUT_MS = 90000");
+    expect(semanticRuntimePrompt).not.toContain("timeoutMs: 15000");
     expect(semanticRuntimePrompt).not.toContain("Later");
     expect(semanticRuntimePrompt).not.toContain("initialized once per interpreter");
   });

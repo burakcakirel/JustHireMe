@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import secrets
+import sys
 import time
 from datetime import datetime, timezone
 
@@ -67,12 +68,21 @@ async def _check_graph_service(repo: Repository) -> dict:
 
 def _check_vector(repo: Repository) -> dict:
     try:
-        status_fn = getattr(repo.vector, "vector_status", None)
+        module = sys.modules.get("data.vector.connection")
+        if module is None:
+            from data.vector.runtime import vector_runtime_status
+
+            runtime = vector_runtime_status()
+            if runtime.get("ready"):
+                return {"status": "ok", "tables": [], "mode": "not_loaded"}
+            return {"status": "disabled", "tables": [], "error": "LanceDB runtime is not installed"}
+
+        status_fn = getattr(module, "vector_status", None)
         if callable(status_fn):
             return status_fn()
-        if getattr(repo.vector.vec, "available", True) is False:
-            return {"status": "unavailable", "tables": [], "error": getattr(repo.vector.vec, "reason", "")}
-        tables = list(repo.vector.vec.list_tables() or [])
+        if getattr(module.vec, "available", True) is False:
+            return {"status": "unavailable", "tables": [], "error": getattr(module.vec, "reason", "")}
+        tables = list(module.vec.list_tables() or [])
         return {"status": "ok", "tables": tables}
     except Exception as exc:
         return {"status": "error", "error": str(exc)}

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 import threading
 
 from fastapi import APIRouter
@@ -18,15 +19,29 @@ def _job_running() -> bool:
     return bool(_INSTALL_JOB and _INSTALL_JOB.is_alive())
 
 
-def _runtime_payload(sync: dict | None = None) -> dict:
-    from data.vector import connection
+def _loaded_vector_status(runtime_ready: bool) -> dict:
+    module = sys.modules.get("data.vector.connection")
+    if module is None:
+        if runtime_ready:
+            return {"status": "initializing", "tables": []}
+        return {"status": "disabled", "tables": [], "error": "LanceDB runtime is not installed"}
 
+    status_fn = getattr(module, "vector_status", None)
+    if callable(status_fn):
+        try:
+            return status_fn(refresh=False)
+        except Exception as exc:
+            return {"status": "degraded", "tables": [], "error": str(exc)}
+    return {"status": "initializing", "tables": []}
+
+
+def _runtime_payload(sync: dict | None = None) -> dict:
     runtime = vector_runtime_status()
-    vector = connection.vector_status(refresh=False)
     progress = vector_runtime_progress()
     runtime_ready = bool(runtime.get("ready"))
+    vector = _loaded_vector_status(runtime_ready)
     restart_required = bool(vector.get("restart_required"))
-    ready = runtime_ready
+    ready = runtime_ready and not restart_required
     payload = {
         "ready": ready,
         "required": not runtime_ready and not restart_required,

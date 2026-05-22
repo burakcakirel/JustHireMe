@@ -28,8 +28,28 @@ def test_app_data_dir_uses_application_support_on_macos(monkeypatch, tmp_path):
     assert paths.app_data_dir() == home / "Library" / "Application Support" / "JustHireMe"
 
 
+def test_app_data_dir_uses_jhm_app_data_dir_as_exact_root(monkeypatch, tmp_path):
+    from core import paths
+
+    app_root = tmp_path / "portable" / "JustHireMe"
+    monkeypatch.setenv("JHM_APP_DATA_DIR", str(app_root))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local-app-data"))
+
+    assert paths.app_data_dir() == app_root
+
+
+def test_app_data_dir_can_use_explicit_base_dir(monkeypatch, tmp_path):
+    from core import paths
+
+    monkeypatch.delenv("JHM_APP_DATA_DIR", raising=False)
+    monkeypatch.setenv("JHM_APP_DATA_BASE_DIR", str(tmp_path / "portable-base"))
+    monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local-app-data"))
+
+    assert paths.app_data_dir() == tmp_path / "portable-base" / "JustHireMe"
+
+
 def test_pdf_renderer_uses_jhm_app_data_dir(monkeypatch, tmp_path):
-    monkeypatch.setenv("JHM_APP_DATA_DIR", str(tmp_path / "roaming-app-data"))
+    monkeypatch.setenv("JHM_APP_DATA_DIR", str(tmp_path / "roaming-app-data" / "JustHireMe"))
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local-app-data"))
 
     import generation.pdf_renderer as pdf_renderer
@@ -40,7 +60,7 @@ def test_pdf_renderer_uses_jhm_app_data_dir(monkeypatch, tmp_path):
 
 
 def test_lead_asset_fallback_uses_jhm_app_data_dir(monkeypatch, tmp_path):
-    monkeypatch.setenv("JHM_APP_DATA_DIR", str(tmp_path / "roaming-app-data"))
+    monkeypatch.setenv("JHM_APP_DATA_DIR", str(tmp_path / "roaming-app-data" / "JustHireMe"))
     monkeypatch.setenv("LOCALAPPDATA", str(tmp_path / "local-app-data"))
 
     from api.routers import leads

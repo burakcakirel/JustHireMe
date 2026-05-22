@@ -43,6 +43,7 @@ type RuntimePayload = {
 type PromptState = "checking" | "waiting" | "required" | "installing" | "restart_required" | "restarting" | "ready" | "error";
 
 const ACTIVE_PROGRESS = new Set(["starting", "downloading", "extracting", "copying", "verifying", "syncing"]);
+const RUNTIME_STATUS_TIMEOUT_MS = 90000;
 
 function formatBytes(value: number) {
   if (!value) return "0 MB";
@@ -185,7 +186,7 @@ export function SemanticRuntimePrompt({ api }: { api: ApiFetch }) {
     const requestId = statusRequestRef.current + 1;
     statusRequestRef.current = requestId;
     try {
-      const response = await api("/api/v1/runtime/vector", { timeoutMs: 15000 });
+      const response = await api("/api/v1/runtime/vector", { timeoutMs: RUNTIME_STATUS_TIMEOUT_MS });
       if (!response.ok) throw new Error(`Runtime check failed with HTTP ${response.status}.`);
       const next = await response.json() as RuntimePayload;
       if (requestId !== statusRequestRef.current) return;

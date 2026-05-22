@@ -8,7 +8,7 @@ APP_DIR_NAME = "JustHireMe"
 
 
 def app_data_base_dir() -> Path:
-    configured = os.environ.get("JHM_APP_DATA_DIR")
+    configured = os.environ.get("JHM_APP_DATA_BASE_DIR")
     if configured:
         return Path(configured).expanduser()
     system = platform.system().lower()
@@ -20,6 +20,9 @@ def app_data_base_dir() -> Path:
 
 
 def app_data_dir() -> Path:
+    configured = os.environ.get("JHM_APP_DATA_DIR")
+    if configured:
+        return Path(configured).expanduser()
     return app_data_base_dir() / APP_DIR_NAME
 
 
