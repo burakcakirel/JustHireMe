@@ -365,6 +365,60 @@ fn bundled_runtime_pack_path(app: &AppHandle) -> Option<PathBuf> {
     .find(|path| path.exists())
 }
 
+#[cfg(not(debug_assertions))]
+fn packaged_sidecar_name() -> String {
+    if cfg!(windows) {
+        "jhm-sidecar-next.exe".into()
+    } else {
+        "jhm-sidecar-next".into()
+    }
+}
+
+#[cfg(not(debug_assertions))]
+fn packaged_sidecar_candidates(app: &AppHandle) -> Vec<PathBuf> {
+    let name = packaged_sidecar_name();
+    let mut candidates = Vec::new();
+
+    if let Ok(exe_path) = std::env::current_exe() {
+        if let Some(exe_dir) = exe_path.parent() {
+            let base_dir = if exe_dir.ends_with("deps") {
+                exe_dir.parent().unwrap_or(exe_dir)
+            } else {
+                exe_dir
+            };
+            candidates.push(base_dir.join(&name));
+            candidates.push(base_dir.join("resources").join("backend").join(&name));
+            candidates.push(base_dir.join("resources").join(&name));
+        }
+    }
+
+    if let Ok(resource_dir) = app.path().resource_dir() {
+        candidates.push(resource_dir.join(&name));
+        candidates.push(resource_dir.join("backend").join(&name));
+        candidates.push(resource_dir.join("resources").join("backend").join(&name));
+    }
+
+    candidates
+}
+
+#[cfg(not(debug_assertions))]
+fn packaged_sidecar_path(app: &AppHandle) -> Result<PathBuf, String> {
+    let candidates = packaged_sidecar_candidates(app);
+    for path in &candidates {
+        if path.is_file() {
+            return Ok(path.to_path_buf());
+        }
+    }
+    let checked = candidates
+        .iter()
+        .map(|path| path.display().to_string())
+        .collect::<Vec<_>>()
+        .join("; ");
+    Err(format!(
+        "Bundled backend sidecar was not found. Checked: {checked}. Reinstall JustHireMe or rebuild the package with `npm run build:sidecar` before `tauri build`."
+    ))
+}
+
 #[cfg(debug_assertions)]
 fn debug_backend_dir() -> PathBuf {
     Path::new(env!("CARGO_MANIFEST_DIR"))
@@ -633,11 +687,14 @@ fn spawn_sidecar(handle: AppHandle, restart_count: u8) -> Result<(), String> {
 
     #[cfg(not(debug_assertions))]
     let sidecar_cmd = {
-        eprintln!("[tauri] Using bundled backend sidecar");
+        let sidecar_path = packaged_sidecar_path(&handle)?;
+        eprintln!(
+            "[tauri] Using bundled backend sidecar: {}",
+            sidecar_path.display()
+        );
         handle
             .shell()
-            .sidecar("jhm-sidecar-next")
-            .expect("failed to create sidecar command")
+            .command(sidecar_path.to_string_lossy().to_string())
     };
 
     let mut sidecar_cmd = sidecar_cmd;

@@ -3761,6 +3761,12 @@
   cursor: pointer;
 }
 
+.profile-mini-action:disabled,
+.profile-row-action:disabled {
+  cursor: not-allowed;
+  opacity: .55;
+}
+
 .profile-danger {
   color: var(--bad);
 }
@@ -4472,6 +4478,29 @@ button.profile-map-node {
 
 .profile-row-action:hover {
   background: rgba(255,255,255,0.46);
+}
+
+.profile-row-action:disabled:hover {
+  background: transparent;
+}
+
+.profile-delete-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 26px;
+  padding: 0 9px;
+  border-radius: 999px;
+  background: rgba(198, 61, 42, .1);
+  border: 1px solid rgba(198, 61, 42, .18);
+  color: var(--bad);
+  font: 700 11px/1 var(--font-mono);
+  white-space: nowrap;
+}
+
+.profile-delete-spinner {
+  border-color: rgba(198, 61, 42, .22);
+  border-top-color: currentColor;
 }
 
 .profile-view-all {

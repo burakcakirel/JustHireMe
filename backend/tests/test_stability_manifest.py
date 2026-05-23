@@ -157,6 +157,19 @@ def test_release_includes_frozen_backend_and_windows_smoke():
     assert "Smoke packaged Windows sidecar" in release
 
 
+def test_sidecar_packaging_checks_manifest_and_runtime_path():
+    check_sidecar = _read(ROOT / "scripts/check-sidecar.mjs")
+    assert "sidecar-manifest.json" in check_sidecar
+    assert "platformTriple" in check_sidecar
+    assert "sidecarBinaryBytes" in check_sidecar
+    assert "minSidecarBytes" in check_sidecar
+
+    tauri_lib = _read(ROOT / "src-tauri/src/lib.rs")
+    assert "packaged_sidecar_path" in tauri_lib
+    assert "Bundled backend sidecar was not found" in tauri_lib
+    assert 'join("resources").join("backend")' in tauri_lib
+
+
 def test_global_mutable_state_has_locks():
     assert "STABILITY: thread-safe LLM repository singleton" in _read(BACKEND / "llm/client.py")
     assert "STABILITY: thread-safe gateway service registry" in _read(BACKEND / "gateway/clients/base.py")

@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.0.35 - 2026-05-24
+
+- Reworked rapid profile-delete handling: replaced the serial delete queue with a single in-flight lock so only one delete runs at a time. The clicked row stays visible with a "Deleting..." loader, every other delete button is disabled, and the UI does not unlock until the backend delete and profile refresh both finish.
+- Hardened packaged sidecar startup: release builds now resolve the bundled backend from the actual install/resource paths and report the checked paths when it is missing, and the pre-package sidecar check rejects stale, mismatched, or placeholder binaries before packaging.
+
 ## 1.0.34 - 2026-05-24
 
 - Fixed profile items (skills, projects, experience, education, certifications) failing to delete when delete buttons were clicked rapidly. Rapid clicks fired concurrent backend deletes that contended for the Kùzu graph lock; the 1.5s lock timeout starved later requests, which silently failed so nodes were never removed (they returned in the UI on navigation and stayed in the knowledge graph).

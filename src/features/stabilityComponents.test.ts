@@ -34,13 +34,15 @@ describe("FIX.md frontend stability contracts", () => {
     expect(jobCard).toContain("/generate");
   });
 
-  it("serializes rapid profile deletes through a queue to avoid lock contention", () => {
-    // Rapid delete clicks must not fire concurrent backend DELETEs (which
-    // contend for the graph lock and silently fail); they are queued and run
-    // one at a time with a single reload after the batch.
-    expect(profile).toContain("deleteQueueRef");
-    expect(profile).toContain("processingDeleteRef");
-    expect(profile).toContain("processDeleteQueue");
+  it("locks profile deletes to one confirmed backend deletion at a time", () => {
+    // Rapid delete clicks must not fire concurrent backend DELETEs. Keep the
+    // active row visible with a loader, disable other delete buttons, then
+    // refresh the profile before another delete can start.
+    expect(profile).toContain("deleteInFlightRef");
+    expect(profile).toContain("setDeletingItem");
+    expect(profile).toContain("Deleting...");
+    expect(profile).toContain("disabled={isDeleting}");
+    expect(profile).not.toContain("deleteQueueRef");
   });
 
   it("keeps profile and ingestion flows connected to their API contracts", () => {

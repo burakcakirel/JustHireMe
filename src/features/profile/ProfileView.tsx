@@ -22,10 +22,9 @@ export function ProfileView({ api, setView, stats }: { api: ApiFetch; setView: (
   const [identityForm, setIdentityForm] = useState({ email: "", phone: "", linkedin_url: "", github_url: "", website_url: "", city: "" });
   const [activeProfileTab, setActiveProfileTab] = useState<"skills" | "experience" | "projects" | "education" | "certifications" | "achievements">("skills");
   const [expandedProfileList, setExpandedProfileList] = useState(false);
-  const [deletingItems, setDeletingItems] = useState<Set<string>>(new Set());
+  const [deletingItem, setDeletingItem] = useState<{ key: string; label: string } | null>(null);
   const deleteMarkersRef = useRef<ProfileDeleteMarker[]>([]);
-  const deleteQueueRef = useRef<{ type: string; id: string; key: string; marker: ProfileDeleteMarker; previousProfile: any }[]>([]);
-  const processingDeleteRef = useRef(false);
+  const deleteInFlightRef = useRef(false);
 
   const setDeleteMarkerList = useCallback((markers: ProfileDeleteMarker[]) => {
     deleteMarkersRef.current = markers;
@@ -97,51 +96,35 @@ export function ProfileView({ api, setView, stats }: { api: ApiFetch; setView: (
     return () => window.removeEventListener("profile-export", exportProfile);
   }, [profile]);
 
-  const processDeleteQueue = useCallback(async () => {
-    if (processingDeleteRef.current) return;
-    processingDeleteRef.current = true;
-    let anySucceeded = false;
-    while (deleteQueueRef.current.length > 0) {
-      const task = deleteQueueRef.current[0];
-      try {
-        const res = await api(profileDeletePath(task.type, task.id), { method: "DELETE", timeoutMs: 120000 });
-        const body = await res.json().catch(() => ({}));
-        if (!res.ok) throw new Error(body.detail || `Delete failed (${res.status})`);
-        setProfileErr(null);
-        anySucceeded = true;
-      } catch (err: any) {
-        console.error("Delete error:", err);
-        removeDeleteMarker(task.marker);
-        setProfile(task.previousProfile);
-        setProfileErr(err?.message || "Delete failed");
-      } finally {
-        deleteQueueRef.current.shift();
-        setDeletingItems(prev => {
-          const next = new Set(prev);
-          next.delete(task.key);
-          return next;
-        });
-      }
-    }
-    processingDeleteRef.current = false;
-    // Reload profile once after all queued deletes have been processed.
-    if (anySucceeded) {
-      await fetchProfile({ suppressError: true });
-      window.dispatchEvent(new CustomEvent("graph-refresh"));
-    }
-  }, [api, fetchProfile, removeDeleteMarker]);
-
-  const deleteItem = useCallback((type: string, id: string) => {
+  const deleteItem = useCallback(async (type: string, id: string) => {
     const key = `${type}:${id}`;
-    if (!id || deletingItems.has(key)) return;
-    const previousProfile = profile;
+    if (!id || deleteInFlightRef.current) return;
     const marker = { type, id };
-    const markers = addDeleteMarker(marker);
-    setProfile((prev: any) => prev ? applyProfileDeleteMarkers(removeProfileItem(prev, type, id), markers) : prev);
-    setDeletingItems(prev => new Set(prev).add(key));
-    deleteQueueRef.current.push({ type, id, key, marker, previousProfile });
-    void processDeleteQueue();
-  }, [profile, deletingItems, addDeleteMarker, processDeleteQueue]);
+    deleteInFlightRef.current = true;
+    setDeletingItem({ key, label: id });
+    setProfileErr(null);
+    try {
+      const res = await api(profileDeletePath(type, id), { method: "DELETE", timeoutMs: 120000 });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(body.detail || `Delete failed (${res.status})`);
+      const markers = addDeleteMarker(marker);
+      setProfile((prev: any) => prev ? applyProfileDeleteMarkers(removeProfileItem(prev, type, id), markers) : prev);
+      const refreshed = await fetchProfile({ suppressError: true });
+      if (!refreshed) {
+        setProfileErr("Deleted, but profile refresh failed. The deleted item is hidden locally and will stay tombstoned.");
+      } else {
+        setProfileErr(null);
+      }
+      window.dispatchEvent(new CustomEvent("graph-refresh"));
+    } catch (err: any) {
+      console.error("Delete error:", err);
+      removeDeleteMarker(marker);
+      setProfileErr(err?.message || "Delete failed");
+    } finally {
+      deleteInFlightRef.current = false;
+      setDeletingItem(null);
+    }
+  }, [api, addDeleteMarker, fetchProfile, removeDeleteMarker]);
 
   const saveEdit = async (type: string, id: string) => {
     if (!id) {
@@ -244,6 +227,16 @@ export function ProfileView({ api, setView, stats }: { api: ApiFetch; setView: (
   const previewAchievements = expandedProfileList ? achievements : achievements.slice(0, 8);
   const listTotal = activeProfileTab === "skills" ? skillItems.length : activeProfileTab === "experience" ? exp.length : activeProfileTab === "projects" ? projects.length : activeProfileTab === "education" ? education.length : activeProfileTab === "certifications" ? certifications.length : achievements.length;
   const listShown = activeProfileTab === "skills" ? previewSkills.length : activeProfileTab === "experience" ? previewExp.length : activeProfileTab === "projects" ? previewProjects.length : activeProfileTab === "education" ? previewEducation.length : activeProfileTab === "certifications" ? previewCertifications.length : previewAchievements.length;
+  const deletingKey = deletingItem?.key || "";
+  const isDeleting = Boolean(deletingItem);
+  const isDeletingKey = (key: string) => deletingKey === key;
+  const deleteButtonTitle = (key: string, label: string) =>
+    isDeletingKey(key) ? `Deleting ${label}` : isDeleting ? "Wait for the current delete to finish" : `Delete ${label}`;
+  const deleteButtonContent = (key: string) =>
+    isDeletingKey(key) ? <span className="spinner-sm profile-delete-spinner" aria-hidden="true" /> : <Icon name="trash" size={14} />;
+  const deleteStatus = (key: string) => isDeletingKey(key) ? (
+    <span className="profile-delete-status"><span className="spinner-sm profile-delete-spinner" aria-hidden="true" /> Deleting...</span>
+  ) : null;
   const tabNodes = [
     { id: "skills" as const, label: "Skills", count: skills.length, tone: "blue", icon: "spark" },
     { id: "experience" as const, label: "Experience", count: exp.length, tone: "orange", icon: "brief" },
@@ -409,8 +402,9 @@ export function ProfileView({ api, setView, stats }: { api: ApiFetch; setView: (
                           </div>
                           <div className="profile-list-trailing">
                             <span className="profile-count-badge">{s.cat}</span>
-                            <button className="profile-row-action" onClick={() => deleteItem("skill", s.id || s.label)} disabled={deletingItems.has(`skill:${s.id || s.label}`)} title="Delete skill">
-                              <Icon name="trash" size={14} />
+                            {deleteStatus(`skill:${s.id || s.label}`)}
+                            <button className="profile-row-action" onClick={() => deleteItem("skill", s.id || s.label)} disabled={isDeleting} title={deleteButtonTitle(`skill:${s.id || s.label}`, s.label)}>
+                              {deleteButtonContent(`skill:${s.id || s.label}`)}
                             </button>
                           </div>
                         </div>
@@ -451,8 +445,9 @@ export function ProfileView({ api, setView, stats }: { api: ApiFetch; setView: (
                               </div>
                               <div className="row gap-2">
                                 <span className="profile-count-badge">{idx + 1}</span>
-                                <button className="btn-icon profile-mini-action" onClick={() => { setEditId(rowId); setEditData({ ...e }); }} disabled={!rowId} title={rowId ? "Edit experience" : "Re-import or refresh graph before editing this row"}><Icon name="edit" size={14} /></button>
-                                <button className="btn-icon profile-mini-action profile-danger" onClick={() => deleteItem("experience", rowKey)} disabled={deletingItems.has(`experience:${rowKey}`)}><Icon name="trash" size={14} /></button>
+                                {deleteStatus(`experience:${rowKey}`)}
+                                <button className="btn-icon profile-mini-action" onClick={() => { setEditId(rowId); setEditData({ ...e }); }} disabled={!rowId || isDeletingKey(`experience:${rowKey}`)} title={rowId ? "Edit experience" : "Re-import or refresh graph before editing this row"}><Icon name="edit" size={14} /></button>
+                                <button className="btn-icon profile-mini-action profile-danger" onClick={() => deleteItem("experience", rowKey)} disabled={isDeleting} title={deleteButtonTitle(`experience:${rowKey}`, entryTitle(e) || "experience")} >{deleteButtonContent(`experience:${rowKey}`)}</button>
                               </div>
                             </div>
                             {e.d && <div style={{ fontSize: 13.5, color: "var(--ink-2)", lineHeight: 1.6, marginTop: 10, whiteSpace: "pre-wrap" }}>{e.d}</div>}
@@ -489,8 +484,9 @@ export function ProfileView({ api, setView, stats }: { api: ApiFetch; setView: (
                               <div className="profile-card-title">{p.title}</div>
                               <div className="row gap-2">
                                 <span className="profile-count-badge">{idx + 1}</span>
-                                <button className="btn-icon profile-mini-action" onClick={() => { setEditId(rowId); setEditData({ ...p, stack: stackItems(p.stack).join(", ") }); }} disabled={!rowId} title={rowId ? "Edit project" : "Re-import or refresh graph before editing this row"}><Icon name="edit" size={14} /></button>
-                                <button className="btn-icon profile-mini-action profile-danger" onClick={() => deleteItem("project", rowKey)} disabled={deletingItems.has(`project:${rowKey}`)}><Icon name="trash" size={14} /></button>
+                                {deleteStatus(`project:${rowKey}`)}
+                                <button className="btn-icon profile-mini-action" onClick={() => { setEditId(rowId); setEditData({ ...p, stack: stackItems(p.stack).join(", ") }); }} disabled={!rowId || isDeletingKey(`project:${rowKey}`)} title={rowId ? "Edit project" : "Re-import or refresh graph before editing this row"}><Icon name="edit" size={14} /></button>
+                                <button className="btn-icon profile-mini-action profile-danger" onClick={() => deleteItem("project", rowKey)} disabled={isDeleting} title={deleteButtonTitle(`project:${rowKey}`, entryTitle(p) || "project")}>{deleteButtonContent(`project:${rowKey}`)}</button>
                               </div>
                             </div>
                             <div className="row gap-1" style={{ flexWrap: "wrap", margin: "8px 0 10px" }}>
@@ -510,7 +506,9 @@ export function ProfileView({ api, setView, stats }: { api: ApiFetch; setView: (
                 {activeProfileTab === "education" && (
                   <div className="profile-skill-grid">
                     {education.length === 0 && <div className="profile-empty">No education recorded.</div>}
-                    {previewEducation.map((item: any, idx: number) => (
+                    {previewEducation.map((item: any, idx: number) => {
+                      const rowKey = profileDeleteKey(item);
+                      return (
                       <div key={`${entryTitle(item)}-${idx}`} className="profile-list-tile profile-list-tile-green">
                         <div className="profile-list-leading">
                           <Icon name="file" size={14} />
@@ -518,18 +516,22 @@ export function ProfileView({ api, setView, stats }: { api: ApiFetch; setView: (
                         </div>
                         <div className="profile-list-trailing">
                           <span className="profile-count-badge">{idx + 1}</span>
-                          <button className="profile-row-action" onClick={() => deleteItem("education", profileDeleteKey(item))} disabled={deletingItems.has(`education:${profileDeleteKey(item)}`)} title="Delete education">
-                            <Icon name="trash" size={14} />
+                          {deleteStatus(`education:${rowKey}`)}
+                          <button className="profile-row-action" onClick={() => deleteItem("education", rowKey)} disabled={isDeleting} title={deleteButtonTitle(`education:${rowKey}`, entryTitle(item) || "education")}>
+                            {deleteButtonContent(`education:${rowKey}`)}
                           </button>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
                 {activeProfileTab === "certifications" && (
                   <div className="profile-skill-grid">
                     {certifications.length === 0 && <div className="profile-empty">No certifications recorded.</div>}
-                    {previewCertifications.map((item: any, idx: number) => (
+                    {previewCertifications.map((item: any, idx: number) => {
+                      const rowKey = profileDeleteKey(item);
+                      return (
                       <div key={`${entryTitle(item)}-${idx}`} className="profile-list-tile profile-list-tile-purple">
                         <div className="profile-list-leading">
                           <Icon name="check" size={14} />
@@ -537,18 +539,22 @@ export function ProfileView({ api, setView, stats }: { api: ApiFetch; setView: (
                         </div>
                         <div className="profile-list-trailing">
                           <span className="profile-count-badge">{idx + 1}</span>
-                          <button className="profile-row-action" onClick={() => deleteItem("certification", profileDeleteKey(item))} disabled={deletingItems.has(`certification:${profileDeleteKey(item)}`)} title="Delete certification">
-                            <Icon name="trash" size={14} />
+                          {deleteStatus(`certification:${rowKey}`)}
+                          <button className="profile-row-action" onClick={() => deleteItem("certification", rowKey)} disabled={isDeleting} title={deleteButtonTitle(`certification:${rowKey}`, entryTitle(item) || "certification")}>
+                            {deleteButtonContent(`certification:${rowKey}`)}
                           </button>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
                 {activeProfileTab === "achievements" && (
                   <div className="profile-skill-grid">
                     {achievements.length === 0 && <div className="profile-empty">No achievements recorded.</div>}
-                    {previewAchievements.map((item: any, idx: number) => (
+                    {previewAchievements.map((item: any, idx: number) => {
+                      const rowKey = profileDeleteKey(item);
+                      return (
                       <div key={`${entryTitle(item)}-${idx}`} className="profile-list-tile profile-list-tile-yellow">
                         <div className="profile-list-leading">
                           <Icon name="trending" size={14} />
@@ -556,12 +562,14 @@ export function ProfileView({ api, setView, stats }: { api: ApiFetch; setView: (
                         </div>
                         <div className="profile-list-trailing">
                           <span className="profile-count-badge">{idx + 1}</span>
-                          <button className="profile-row-action" onClick={() => deleteItem("achievement", profileDeleteKey(item))} disabled={deletingItems.has(`achievement:${profileDeleteKey(item)}`)} title="Delete achievement">
-                            <Icon name="trash" size={14} />
+                          {deleteStatus(`achievement:${rowKey}`)}
+                          <button className="profile-row-action" onClick={() => deleteItem("achievement", rowKey)} disabled={isDeleting} title={deleteButtonTitle(`achievement:${rowKey}`, entryTitle(item) || "achievement")}>
+                            {deleteButtonContent(`achievement:${rowKey}`)}
                           </button>
                         </div>
                       </div>
-                    ))}
+                      );
+                    })}
                   </div>
                 )}
                 {listTotal > listShown && (
