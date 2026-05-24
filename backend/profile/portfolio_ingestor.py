@@ -6,10 +6,8 @@ import html
 import os
 import re
 import time
-from dataclasses import dataclass, field
 from urllib.parse import urljoin, urlparse, urlunparse
 
-from pydantic import BaseModel, Field
 
 from automation.browser_runtime import launch_chromium
 from core.logging import get_logger
@@ -25,6 +23,7 @@ from profile.portfolio_text import (
     _same_origin,
 )
 from profile.portfolio_text import _repo_title_from_url as _repo_title_from_url
+from profile.portfolio_models import PageSnapshot, _PortfolioExtract
 
 _log = get_logger(__name__)
 
@@ -178,32 +177,6 @@ SKILL_PATTERNS = {
     "KuzuDB": r"\bkuzu(?:db)?\b",
     "LanceDB": r"\blancedb\b",
 }
-
-
-@dataclass
-class PageSnapshot:
-    url: str
-    title: str = ""
-    text: str = ""
-    links: list[dict[str, str]] = field(default_factory=list)
-
-
-class _PortfolioProject(BaseModel):
-    title: str = ""
-    stack: str = ""
-    repo: str = ""
-    impact: str = ""
-
-
-class _PortfolioExtract(BaseModel):
-    candidate_name: str = Field(default="", description="candidate name if visible")
-    candidate_summary: str = Field(default="", description="2-4 sentence professional bio")
-    skills: list[str] = Field(default_factory=list, description="tech skills explicitly visible")
-    projects: list[_PortfolioProject] = Field(default_factory=list)
-    experience: list[dict[str, str]] = Field(default_factory=list)
-    education: list[str] = Field(default_factory=list)
-    certifications: list[str] = Field(default_factory=list)
-    achievements: list[str] = Field(default_factory=list)
 
 
 async def ingest_portfolio_url(url: str) -> dict:
