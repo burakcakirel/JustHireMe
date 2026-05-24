@@ -250,5 +250,8 @@ jobs:
           mkdir -p src-tauri/resources/backend
           touch "src-tauri/resources/backend/jhm-sidecar-next-${triple}"
           chmod +x "src-tauri/resources/backend/jhm-sidecar-next-${triple}"
+          # Stub the bundled sidecar manifest so the exact-path bundle resource
+          # in tauri.conf.json validates without a full sidecar build.
+          echo '{"runtimePackVersion":""}' > src-tauri/resources/backend/sidecar-manifest.json
       - run: cd src-tauri && cargo test --lib
       - run: cd src-tauri && cargo check
