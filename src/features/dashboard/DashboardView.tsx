@@ -3,14 +3,14 @@ import type React from "react";
 import type { Lead, LogLine, OperationProgress, View } from "../../types";
 import { getMark, getTone, leadDisplayHeading, leadSignal } from "../../shared/lib/leadUtils";
 
-const warmSurface = "rgba(255, 255, 255, 0.64)";
-const warmSurfaceStrong = "rgba(255, 255, 255, 0.78)";
-const warmBorder = "rgba(201, 100, 66, 0.16)";
+const warmSurface = "rgba(var(--white-rgb), 0.64)";
+const warmSurfaceStrong = "rgba(var(--white-rgb), 0.78)";
+const warmBorder = "rgba(var(--accent-rgb), 0.16)";
 
 const MiniStat = ({ tone, label, value, hint, icon }: { tone: string; label: string; value: number; hint: string; icon: string }) => (
   <div style={{
     border: `1px solid color-mix(in srgb, var(--${tone}) 72%, transparent)`,
-    background: `linear-gradient(135deg, var(--${tone}-soft) 0%, rgba(255,255,255,0.48) 100%)`,
+    background: `linear-gradient(135deg, var(--${tone}-soft) 0%, rgba(var(--white-rgb),0.48) 100%)`,
     borderRadius: 8,
     padding: 14,
     minHeight: 104,
@@ -136,7 +136,7 @@ export function DashboardView({
   return (
     <div className="scroll" style={{ padding: 24, flex: 1, height: "100%", minHeight: 0 }}>
       <section style={{
-        border: "1px solid rgba(201,100,66,0.20)",
+        border: "1px solid rgba(var(--accent-rgb),0.20)",
         borderRadius: 8,
         padding: 22,
         marginBottom: 16,
@@ -219,7 +219,7 @@ export function DashboardView({
                   <span>{progress.total ? `Evaluating ${Math.min(progress.completed, progress.total)}/${progress.total} leads` : `${progress.completed} leads evaluated`}</span>
                   <span>{progress.total ? `${Math.min(100, Math.round((progress.completed / progress.total) * 100))}%` : ""}</span>
                 </div>
-                <div style={{ height: 7, borderRadius: 999, background: "rgba(255,255,255,0.64)", overflow: "hidden", border: `1px solid ${warmBorder}`, marginTop: 6 }}>
+                <div style={{ height: 7, borderRadius: 999, background: "rgba(var(--white-rgb),0.64)", overflow: "hidden", border: `1px solid ${warmBorder}`, marginTop: 6 }}>
                   <div style={{
                     width: `${progress.total ? Math.min(100, Math.round((progress.completed / progress.total) * 100)) : 12}%`,
                     minWidth: progress.completed ? 10 : 0,
@@ -257,7 +257,7 @@ export function DashboardView({
           padding: 16,
           borderRadius: 8,
           border: `1px solid ${warmBorder}`,
-          background: "linear-gradient(180deg, rgba(255,255,255,0.80) 0%, rgba(252,224,200,0.24) 100%)",
+          background: "linear-gradient(180deg, rgba(var(--white-rgb),0.80) 0%, rgba(var(--coral-rgb),0.24) 100%)",
           boxShadow: "var(--shadow-sm)",
         }}>
           <div className="row" style={{ justifyContent: "space-between", marginBottom: 12, gap: 12 }}>
@@ -280,7 +280,7 @@ export function DashboardView({
           padding: 16,
           borderRadius: 8,
           border: `1px solid ${warmBorder}`,
-          background: "linear-gradient(180deg, rgba(255,255,255,0.76) 0%, rgba(231,220,238,0.30) 100%)",
+          background: "linear-gradient(180deg, rgba(var(--white-rgb),0.76) 0%, rgba(var(--purplesoft-rgb),0.30) 100%)",
           boxShadow: "var(--shadow-sm)",
         }}>
           <h3>Maintenance</h3>

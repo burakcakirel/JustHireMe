@@ -737,8 +737,8 @@ function GravityRelationGraph({ stats }: { stats: GraphStats }) {
         <svg ref={svgRef} viewBox={`0 0 ${GRAVITY_WIDTH} ${GRAVITY_HEIGHT}`} className="gravity-graph-svg" role="img" aria-label="Weighted gravitational entity graph">
           <defs>
             <linearGradient id="gravityEdge" x1="0" x2="1">
-              <stop offset="0%" stopColor="rgba(91, 140, 68, 0.30)" />
-              <stop offset="100%" stopColor="rgba(199, 100, 66, 0.44)" />
+              <stop offset="0%" stopColor="rgba(var(--ok-rgb), 0.30)" />
+              <stop offset="100%" stopColor="rgba(var(--accent-rgb), 0.44)" />
             </linearGradient>
           </defs>
           <rect x="0" y="0" width={GRAVITY_WIDTH} height={GRAVITY_HEIGHT} rx="28" className="gravity-graph-bg" />
@@ -1176,8 +1176,8 @@ function KnowledgeRelationAtlas({ stats }: { stats: GraphStats }) {
           >
             <defs>
               <linearGradient id="evidenceRibbon" x1="0" x2="1">
-                <stop offset="0%" stopColor="rgba(203, 124, 154, 0.55)" />
-                <stop offset="100%" stopColor="rgba(209, 120, 71, 0.72)" />
+                <stop offset="0%" stopColor="rgba(var(--pinkmid-rgb), 0.55)" />
+                <stop offset="100%" stopColor="rgba(var(--orange-rgb), 0.72)" />
               </linearGradient>
             </defs>
             <text x="170" y="48" textAnchor="middle" className="graph-lane-label">Proof projects</text>
@@ -1503,8 +1503,8 @@ function EmbeddingAtlas({ stats }: { stats: GraphStats }) {
             <svg viewBox="0 0 920 520" className="graph-embedding-atlas-svg" role="img" aria-label="Profile graph and vector projection">
               <defs>
                 <radialGradient id="embeddingGlow">
-                  <stop offset="0%" stopColor="rgba(255,255,255,0.95)" />
-                  <stop offset="100%" stopColor="rgba(244,239,230,0.25)" />
+                  <stop offset="0%" stopColor="rgba(var(--white-rgb),0.95)" />
+                  <stop offset="100%" stopColor="rgba(var(--cream-rgb),0.25)" />
                 </radialGradient>
               </defs>
               <ellipse cx="460" cy="260" rx="330" ry="170" className="graph-embedding-orbit" />

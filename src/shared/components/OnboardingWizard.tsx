@@ -184,7 +184,7 @@ export function OnboardingWizard({ api, onFinish, onOpenSettings }: { api: ApiFe
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(244,239,230,0.94)", display: "grid", placeItems: "center", padding: 22 }}
+      style={{ position: "fixed", inset: 0, zIndex: 50, background: "rgba(var(--cream-rgb),0.94)", display: "grid", placeItems: "center", padding: 22 }}
     >
       <motion.section
         initial={{ y: 16, opacity: 0 }}

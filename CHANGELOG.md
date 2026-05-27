@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.40 - 2026-05-27
+
+- Added a full dark mode. Switch it from the new sun/moon button in the top bar or from Settings → Appearance (Light / Dark / System). The default follows your operating system and updates live when the OS theme changes; an explicit choice is remembered across launches and applied before first paint (no flash of the wrong theme). The whole app is themed via design tokens — dashboard, pipeline, profile, knowledge graph, activity log, settings, and onboarding — with a warm dark palette that keeps the product's character. (#92)
+
 ## 1.0.39 - 2026-05-25
 
 - Fixed "Customize One Job" rejecting valid non-technical roles with "Paste a fuller job description before generating." The pre-generation readiness check required software/engineering keywords (engineer, python, react, ...), so complete descriptions for non-tech roles — e.g. a "Financial Aid Advisor" posting — were wrongly blocked. Generation readiness now gates on the substance of the description (length and word count) instead of a tech-keyword whitelist, so any field is supported. (#92)

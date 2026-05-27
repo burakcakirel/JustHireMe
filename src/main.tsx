@@ -4,7 +4,10 @@
 import React from "react";
 import ReactDOM from "react-dom/client";
 import App from "./App";
+import { initTheme } from "./shared/lib/theme";
 import "./index.css";
+
+initTheme();
 
 function renderFatalStartupError(error: unknown) {
   const root = document.getElementById("root");

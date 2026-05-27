@@ -1,9 +1,11 @@
 import Icon from "./Icon";
 import type { OperationProgress, View } from "../../types";
 import { useAppVersion } from "../hooks/useAppVersion";
+import { useTheme } from "../lib/theme";
 
 export function Topbar({ view, progress }: { view: View; progress?: OperationProgress }) {
   const appVersion = useAppVersion();
+  const { resolved, setPref } = useTheme();
   const titles: Record<View, string> = {
     apply:     "Customize One Job",
     dashboard: "Command Center",
@@ -68,6 +70,14 @@ export function Topbar({ view, progress }: { view: View; progress?: OperationPro
           </div>
         </div>
       )}
+      <button
+        className="btn btn-icon"
+        onClick={() => setPref(resolved === "dark" ? "light" : "dark")}
+        title={resolved === "dark" ? "Switch to light theme" : "Switch to dark theme"}
+        aria-label="Toggle theme"
+      >
+        <Icon name={resolved === "dark" ? "sun" : "moon"} size={15} />
+      </button>
       <div className="topbar-version mono" title={`JustHireMe version ${appVersion}`}>v{appVersion}</div>
     </header>
   );

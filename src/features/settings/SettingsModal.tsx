@@ -6,9 +6,48 @@ import { GlobalSettings } from "./panels/GlobalSettings";
 import { ResumeTemplatesPanel } from "./panels/ResumeTemplatesPanel";
 import { StepSettings } from "./panels/StepSettings";
 import { EMPTY, type Cfg } from "./panels/shared";
+import { SectionLabel } from "./panels/shared";
+import { useTheme, type ThemePref } from "../../shared/lib/theme";
 import type { ApiFetch } from "../../types";
 
 interface Props { api: ApiFetch; onClose: () => void; }
+
+const THEME_OPTIONS: { value: ThemePref; label: string; icon: string }[] = [
+  { value: "light", label: "Light", icon: "sun" },
+  { value: "dark", label: "Dark", icon: "moon" },
+  { value: "system", label: "System", icon: "globe" },
+];
+
+function AppearanceSettings() {
+  const { pref, setPref } = useTheme();
+  return (
+    <div>
+      <SectionLabel label="Appearance" sub="theme used across the app — System follows your OS" />
+      <div style={{ display: "flex", gap: 8 }}>
+        {THEME_OPTIONS.map(opt => {
+          const active = pref === opt.value;
+          return (
+            <button
+              key={opt.value}
+              onClick={() => setPref(opt.value)}
+              aria-pressed={active}
+              style={{
+                flex: 1, display: "flex", alignItems: "center", justifyContent: "center", gap: 8,
+                padding: "11px 12px", borderRadius: 11, fontSize: 13, fontWeight: 600, cursor: "pointer",
+                background: active ? "var(--accent-soft)" : "var(--paper-2)",
+                color: active ? "var(--accent)" : "var(--ink-2)",
+                border: `1px solid ${active ? "var(--accent)" : "var(--line)"}`,
+                transition: "background 140ms ease, border-color 140ms ease, color 140ms ease",
+              }}
+            >
+              <Icon name={opt.icon} size={15} /> {opt.label}
+            </button>
+          );
+        })}
+      </div>
+    </div>
+  );
+}
 
 export default function SettingsModal({ api, onClose }: Props) {
   const [cfg, setCfg]       = useState<Cfg>(EMPTY);
@@ -65,6 +104,7 @@ export default function SettingsModal({ api, onClose }: Props) {
         </div>
 
         <div className="scroll" style={{ padding: "20px 24px", display: "flex", flexDirection: "column", gap: 22 }}>
+          <AppearanceSettings />
           <GlobalSettings cfg={cfg} set={set} onChange={onChange} prov={prov} api={api} />
           <ResumeTemplatesPanel api={api} />
           <StepSettings cfg={cfg} onChange={onChange} />

@@ -74,14 +74,14 @@ export function ActivityView({ logs }: { logs: LogLine[] }) {
           </div>
         </div>
         <div style={{ height: 440, display: "flex" }}>
-          <div className="scroll terminal" style={{ background: "#1F1A14", color: "#EFE7D6", borderRadius: 12, padding: "14px 16px", flex: 1 }}>
+          <div className="scroll terminal" style={{ background: "var(--term-bg)", color: "var(--term-fg)", borderRadius: 12, padding: "14px 16px", flex: 1 }}>
             {visibleLogs.map(ln => {
               const tone = ln.kind === "heartbeat" ? "blue" : ln.kind === "agent" ? "green" : "yellow";
               return (
                 <div key={ln.id} className="row gap-3" style={{ marginBottom: 5, alignItems: "baseline" }}>
-                  <span className="mono tabular" style={{ color: "#7A6F62", fontSize: 10.5, minWidth: 50 }}>{ln.ts}</span>
+                  <span className="mono tabular" style={{ color: "var(--term-dim)", fontSize: 10.5, minWidth: 50 }}>{ln.ts}</span>
                   <span className="mono" style={{ fontSize: 9.5, fontWeight: 600, textTransform: "uppercase", letterSpacing: "0.08em", padding: "1px 6px", borderRadius: 4, background: `var(--${tone})`, color: `var(--${tone}-ink)`, minWidth: 42, textAlign: "center" }}>{ln.kind}</span>
-                  <span style={{ color: "#B5AC9D", fontSize: 11 }}>{ln.src}</span>
+                  <span style={{ color: "var(--term-mid)", fontSize: 11 }}>{ln.src}</span>
                   <span style={{ flex: 1 }}>{ln.msg}</span>
                 </div>
               );
