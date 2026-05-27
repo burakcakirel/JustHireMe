@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.0.41 - 2026-05-27
+
+- Reworked the dark theme so it no longer looks flat and muddy. Surfaces now sit on a clear elevation ramp (cards and panels visibly lift off a deeper base), borders are crisper, text contrast is stronger, and the dashboard's hero and stat cards use richer jewel-tone darks instead of washed-out browns. Light mode is unchanged.
+
 ## 1.0.40 - 2026-05-27
 
 - Added a full dark mode. Switch it from the new sun/moon button in the top bar or from Settings → Appearance (Light / Dark / System). The default follows your operating system and updates live when the OS theme changes; an explicit choice is remembered across launches and applied before first paint (no flash of the wrong theme). The whole app is themed via design tokens — dashboard, pipeline, profile, knowledge graph, activity log, settings, and onboarding — with a warm dark palette that keeps the product's character. (#92)

@@ -122,91 +122,94 @@
 :root[data-theme="dark"] {
   color-scheme: dark;
 
-  --paper:    #1A1714;
-  --paper-2:  #221E19;
-  --paper-3:  #2B2620;
-  --paper-4:  #38322A;
-  --card:     #24201B;
+  /* Elevation ramp: paper is the darkest base; cards/glass surfaces sit
+     clearly above it (see --white-rgb) so panels read as raised, not muddy. */
+  --paper:    #151311;
+  --paper-2:  #1D1B18;
+  --paper-3:  #262320;
+  --paper-4:  #332F2A;
+  --card:     #211E1A;
 
-  --ink:      #ECE7DD;
-  --ink-2:    #C5BEB1;
-  --ink-3:    #8E877A;
-  --ink-4:    #5F594F;
+  --ink:      #EFEAE0;
+  --ink-2:    #CAC3B6;
+  --ink-3:    #978F81;
+  --ink-4:    #655E53;
 
-  --line:     rgba(245,240,230,0.11);
-  --line-2:   rgba(245,240,230,0.06);
+  --line:     rgba(245,240,230,0.14);
+  --line-2:   rgba(245,240,230,0.07);
   --line-lo:  rgba(245,240,230,0.05);
 
-  --accent:       #D97551;
-  --accent-soft:  rgba(217,117,81,0.16);
+  --accent:       #E07A52;
+  --accent-soft:  rgba(224,122,82,0.18);
 
-  --ok:       #7FAB60;
-  --ok-soft:  rgba(127,171,96,0.18);
-  --warn:     #D6A052;
-  --bad:      #D96A4B;
-  --bad-soft: rgba(217,106,75,0.16);
+  --ok:       #82B063;
+  --ok-soft:  rgba(130,176,99,0.18);
+  --warn:     #D9A455;
+  --bad:      #DC6F50;
+  --bad-soft: rgba(220,111,80,0.16);
 
-  /* mids are deepened (not brightened) so light `-ink` text/icons read on the
-     `-tone` tiles while the same value still shows as a visible border on the
-     dark paper. */
-  --blue:        #41617F;
-  --blue-soft:   #1C2733;
-  --blue-ink:    #B8D2EC;
+  /* mids stay deep enough that light `-ink` text/icons read on the `-tone`
+     tiles; `-soft` are richer jewel darks so chips and the hero gradient have
+     colour instead of looking like mud. */
+  --blue:        #4A6E8E;
+  --blue-soft:   #1E2C3B;
+  --blue-ink:    #BBD5EF;
 
-  --purple:      #5E5184;
-  --purple-soft: #262130;
-  --purple-ink:  #D6C9EC;
+  --purple:      #6A5C94;
+  --purple-soft: #2B2542;
+  --purple-ink:  #DACEEF;
 
-  --green:       #4C6F4A;
-  --green-soft:  #1D261C;
-  --green-ink:   #C2DDBC;
+  --green:       #557A52;
+  --green-soft:  #1F2B1E;
+  --green-ink:   #C6E1C0;
 
-  --yellow:      #8A6B2E;
-  --yellow-soft: #2A2316;
-  --yellow-ink:  #E8D29A;
+  --yellow:      #9A7733;
+  --yellow-soft: #2F2717;
+  --yellow-ink:  #ECD6A0;
 
-  --orange:      #9C5836;
-  --orange-soft: #2C2017;
-  --orange-ink:  #F2C6A6;
+  --orange:      #AD6038;
+  --orange-soft: #36231A;
+  --orange-ink:  #F4CBAB;
 
-  --teal:        #3C6E76;
-  --teal-soft:   #16282B;
-  --teal-ink:    #B2DCE1;
+  --teal:        #437B84;
+  --teal-soft:   #182D30;
+  --teal-ink:    #B6E0E5;
 
-  --pink:        #875466;
-  --pink-soft:   #2C1F25;
-  --pink-ink:    #ECC7D3;
+  --pink:        #95606F;
+  --pink-soft:   #341F2A;
+  --pink-ink:    #F0CBD7;
 
-  --coral-soft:  #2E1F18;
+  --coral-soft:  #34221A;
 
-  --shadow-xs:  0 1px 2px rgba(0,0,0,0.40);
-  --shadow-sm:  0 2px 6px rgba(0,0,0,0.45);
-  --shadow-md:  0 6px 18px rgba(0,0,0,0.50);
-  --shadow-lg:  0 18px 60px rgba(0,0,0,0.62), 0 4px 16px rgba(0,0,0,0.40);
+  --shadow-xs:  0 1px 2px rgba(0,0,0,0.45);
+  --shadow-sm:  0 2px 8px rgba(0,0,0,0.50);
+  --shadow-md:  0 8px 24px rgba(0,0,0,0.55);
+  --shadow-lg:  0 24px 70px rgba(0,0,0,0.66), 0 6px 20px rgba(0,0,0,0.45);
 
-  /* channel swaps: ink → light hairlines; white glass + cream → dark surfaces;
-     pastel `-soft` sources → their dark tints; mids/accents → dark-mode hues. */
+  /* channel swaps: ink → light hairlines; white glass → an ELEVATED surface
+     (58,54,48 reads clearly above paper at the alphas used); cream → dark
+     scrims; pastel `-soft` sources → their dark tints; mids/accents → dark hues. */
   --ink-rgb:        245,240,230;
-  --white-rgb:      42,38,32;
+  --white-rgb:      58,54,48;
   --black-rgb:      0,0,0;
-  --accent-rgb:     217,117,81;
-  --cream-rgb:      40,36,30;
-  --coral-rgb:      46,31,24;
-  --orange-rgb:     217,117,81;
-  --accentred-rgb:  217,106,75;
-  --bluesoft-rgb:   28,39,51;
-  --purplesoft-rgb: 38,33,48;
-  --greensoft-rgb:  29,38,28;
-  --tealsoft-rgb:   22,40,43;
-  --yellowsoft-rgb: 42,35,22;
-  --pinksoft-rgb:   44,31,37;
-  --pinkmid-rgb:    135,84,102;
-  --purplemid-rgb:  94,81,132;
-  --warnmid-rgb:    138,107,46;
-  --badmid-rgb:     217,106,75;
-  --bluemid-rgb:    65,97,127;
-  --ok-rgb:         127,171,96;
-  --greenring-rgb:  110,150,105;
+  --accent-rgb:     224,122,82;
+  --cream-rgb:      34,31,27;
+  --coral-rgb:      52,34,26;
+  --orange-rgb:     216,124,74;
+  --accentred-rgb:  220,111,80;
+  --bluesoft-rgb:   30,44,59;
+  --purplesoft-rgb: 43,37,66;
+  --greensoft-rgb:  31,43,30;
+  --tealsoft-rgb:   24,45,48;
+  --yellowsoft-rgb: 47,39,23;
+  --pinksoft-rgb:   52,31,42;
+  --pinkmid-rgb:    149,96,115;
+  --purplemid-rgb:  106,92,148;
+  --warnmid-rgb:    154,119,51;
+  --badmid-rgb:     220,111,80;
+  --bluemid-rgb:    74,110,142;
+  --ok-rgb:         130,176,99;
+  --greenring-rgb:  120,160,112;
 
   --btn-primary-bg: #ECE7DD;
   --btn-primary-fg: #1A1714;
