@@ -5,10 +5,35 @@ import { DiscoverySettings } from "./panels/DiscoverySettings";
 import { GlobalSettings } from "./panels/GlobalSettings";
 import { ResumeTemplatesPanel } from "./panels/ResumeTemplatesPanel";
 import { StepSettings } from "./panels/StepSettings";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { EMPTY, type Cfg } from "./panels/shared";
 import { SectionLabel } from "./panels/shared";
 import { useTheme, type ThemePref } from "../../shared/lib/theme";
 import type { ApiFetch } from "../../types";
+
+const LEGAL_BASE = "https://github.com/vasu-devs/JustHireMe/blob/main/docs/legal";
+const LEGAL_LINKS: { label: string; href: string }[] = [
+  { label: "Terms of Use", href: `${LEGAL_BASE}/terms-of-use.md` },
+  { label: "Privacy Policy", href: `${LEGAL_BASE}/privacy-policy.md` },
+  { label: "IP / DMCA Policy", href: `${LEGAL_BASE}/ip-and-dmca-policy.md` },
+  { label: "Data Compliance", href: `${LEGAL_BASE}/data-compliance.md` },
+];
+
+function LegalSettings() {
+  return (
+    <div>
+      <SectionLabel label="Legal & Privacy" sub="JustHireMe is local-first — your data stays on this device" />
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+        {LEGAL_LINKS.map(l => (
+          <button key={l.href} className="btn ghost" onClick={() => openUrl(l.href)}
+            style={{ fontSize: 12, padding: "7px 11px" }}>
+            <Icon name="external" size={12} /> {l.label}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 interface Props { api: ApiFetch; onClose: () => void; }
 
@@ -110,6 +135,7 @@ export default function SettingsModal({ api, onClose }: Props) {
           <StepSettings cfg={cfg} onChange={onChange} />
           <DiscoverySettings cfg={cfg} set={set} onChange={onChange} />
           <AutomationSettings cfg={cfg} onChange={onChange} />
+          <LegalSettings />
           <div style={{ height: 6 }} />
         </div>
 
