@@ -255,9 +255,27 @@ def _run_migrations_inner(db_path: str | None = None) -> None:
             conn.execute("INSERT OR REPLACE INTO schema_migrations(name) VALUES(?)", (path.name,))
 
         _ensure_legacy_columns(conn)
+        _ensure_indexes(conn)
         conn.commit()
     finally:
         conn.close()
+
+
+def _ensure_indexes(conn) -> None:
+    # Run after _ensure_legacy_columns so kind/feedback/followup_due_at exist.
+    # Indexes for the hot lead/event query paths — before this the only index in
+    # the schema was on resume_templates, so every filtered/ordered leads query
+    # and every per-lead events lookup was a full table scan. All IF NOT EXISTS.
+    conn.executescript(
+        """
+        CREATE INDEX IF NOT EXISTS idx_leads_created_at ON leads(created_at);
+        CREATE INDEX IF NOT EXISTS idx_leads_status_kind ON leads(status, kind);
+        CREATE INDEX IF NOT EXISTS idx_leads_followup_due_at ON leads(followup_due_at);
+        CREATE INDEX IF NOT EXISTS idx_leads_feedback ON leads(feedback);
+        CREATE INDEX IF NOT EXISTS idx_events_job_id ON events(job_id);
+        CREATE INDEX IF NOT EXISTS idx_events_ts ON events(ts);
+        """
+    )
 
 
 def _ensure_core_tables(conn) -> None:

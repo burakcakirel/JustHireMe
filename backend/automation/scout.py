@@ -165,12 +165,14 @@ def _parse_date(s: str) -> datetime | None:
 
 
 def _is_recent(date_str: str) -> bool:
-    """Return True if the date is within _MAX_AGE_DAYS, or if date is unknown."""
+    """Fail closed: True only for a date confirmed within _MAX_AGE_DAYS. Empty or
+    unparseable dates are treated as NOT recent; callers with a fresh-source hint
+    override at the call site."""
     if not date_str:
-        return True   # no date info → include (don't discard on uncertainty)
+        return False
     dt = _parse_date(date_str)
     if dt is None:
-        return True   # unparseable → include
+        return False
     return dt >= _cutoff()
 
 
@@ -308,7 +310,7 @@ def _parse(md: str, src: str) -> list:
         d = lead.model_dump()
         if fresh_search_source and not d.get("posted_date"):
             d["_fresh_source"] = "google_past_week"
-        if _is_recent(d.get("posted_date", "")):
+        if d.get("_fresh_source") or _is_recent(d.get("posted_date", "")):
             results.append(d)
         else:
             _log.debug("Skipping old listing (%s): %s", d.get("posted_date", ""), d.get("title", ""))
@@ -340,7 +342,7 @@ def _parse_wellfound(md: str, src: str) -> list:
         d = lead.model_dump()
         if fresh_search_source and not d.get("posted_date"):
             d["_fresh_source"] = "google_past_week"
-        if _is_recent(d.get("posted_date", "")):
+        if d.get("_fresh_source") or _is_recent(d.get("posted_date", "")):
             d["platform"] = "wellfound"
             results.append(d)
     return results
