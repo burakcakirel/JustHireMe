@@ -110,6 +110,7 @@ async def probe_provider_key(provider: str, key: str, settings: dict | None = No
 async def list_provider_models(provider: str, key: str, settings: dict | None = None) -> list[str]:
     import httpx
     from llm import _OPENAI_COMPAT_BASE_URLS
+    from llm.client import _validate_base_url
 
     cfg = settings or {}
     headers = {"Authorization": f"Bearer {key}"}
@@ -138,6 +139,14 @@ async def list_provider_models(provider: str, key: str, settings: dict | None = 
             endpoint = f"{endpoint}/openai/v1"
         url = f"{endpoint}/models"
         headers = {"api-key": key}
+    elif provider == "custom":
+        endpoint = str(
+            cfg.get("custom_base_url")
+            or os.environ.get("OPENAI_COMPAT_BASE_URL", "")
+            or "https://api.openai.com/v1"
+        ).strip().rstrip("/")
+        endpoint = _validate_base_url(endpoint)
+        url = f"{endpoint}/models"
     elif provider in _OPENAI_COMPAT_BASE_URLS:
         url = f"{_OPENAI_COMPAT_BASE_URLS[provider].rstrip('/')}/models"
     else:

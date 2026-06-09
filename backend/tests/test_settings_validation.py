@@ -156,3 +156,69 @@ def test_validate_provider_settings_uses_pending_deepseek_key(monkeypatch):
     assert calls["deepseek"] == "typed-deepseek-key"
     assert calls["gemini"] == "saved-gemini-key"
     assert result["deepseek"]["status"] == "ok"
+
+
+def test_custom_model_list_uses_pending_base_url(monkeypatch):
+    import httpx
+
+    calls = []
+
+    class FakeResponse:
+        def raise_for_status(self):
+            return None
+
+        def json(self):
+            return {
+                "data": [
+                    {"id": "zeta-model"},
+                    {"name": "alpha-model"},
+                    {"model": "beta-model"},
+                    "gamma-model",
+                    {"id": "alpha-model"},
+                ]
+            }
+
+    class FakeClient:
+        def __init__(self, *args, **kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *args):
+            return None
+
+        async def get(self, url, headers=None):
+            calls.append((url, headers))
+            return FakeResponse()
+
+    monkeypatch.setattr(httpx, "AsyncClient", FakeClient)
+
+    models = asyncio.run(
+        settings_router.list_provider_models(
+            "custom",
+            "typed-custom-key",
+            {"custom_base_url": "http://ai-burak.local:4000/v1/"},
+        )
+    )
+
+    assert calls == [
+        (
+            "http://ai-burak.local:4000/v1/models",
+            {"Authorization": "Bearer typed-custom-key"},
+        )
+    ]
+    assert models == ["alpha-model", "beta-model", "gamma-model", "zeta-model"]
+
+
+def test_custom_model_list_rejects_literal_private_ip():
+    import pytest
+
+    with pytest.raises(ValueError):
+        asyncio.run(
+            settings_router.list_provider_models(
+                "custom",
+                "typed-custom-key",
+                {"custom_base_url": "http://127.0.0.1:4000/v1"},
+            )
+        )
