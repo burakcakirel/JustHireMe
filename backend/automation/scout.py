@@ -517,6 +517,7 @@ def run(
     apify_actor: str | None = None,
     headed: bool = False,
     min_quality: int = MIN_DEFAULT_QUALITY,
+    linkedin_cookie: str | None = None,
 ) -> list:
     errors: list[str] = []
     leads = []
@@ -571,7 +572,10 @@ def run(
 
     # Apify fallback
     if apify_token and apify_actor and queries:
-        raw = asyncio.run(apify(apify_actor, {"queries": queries}, apify_token))
+        apify_inp: dict[str, object] = {"queries": queries}
+        if linkedin_cookie:
+            apify_inp["linkedin_cookie"] = linkedin_cookie
+        raw = asyncio.run(apify(apify_actor, apify_inp, apify_token))
         for item in raw:
             processed_leads.append({
                 "title": item.get("title", ""),
