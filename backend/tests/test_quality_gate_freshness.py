@@ -4,7 +4,9 @@ Previously a posting with no parseable date got a free pass ("freshness
 unknown"), so stale jobs flowed into the (auto-apply) pipeline. Now an undated
 lead is treated as not-fresh unless it came from a recency-constrained source.
 """
-from discovery.quality_gate import _freshness, evaluate_lead_quality
+from datetime import datetime, timezone
+
+from discovery.quality_gate import _freshness, _parse_date, evaluate_lead_quality
 
 _GOOD_DESC = (
     "Entry-level fully remote React and TypeScript role building API workflows "
@@ -63,3 +65,40 @@ def test_undated_but_fresh_source_is_accepted():
         "source_meta": {"fresh_source": "google_past_week"},
     })
     assert q["accepted"] is True
+
+
+# --- _parse_date ISO-8601 with colon timezone offset ----------------------------
+
+def test_parse_date_iso_8601_with_colon_tz():
+    """ISO-8601 with colon timezone offset must parse without warning."""
+    dt = _parse_date("2026-06-05T14:21:12+00:00")
+    assert dt is not None
+    assert dt.year == 2026
+    assert dt.month == 6
+    assert dt.day == 5
+    assert dt.hour == 14
+    assert dt.minute == 21
+    assert dt.second == 12
+    assert dt.tzinfo is not None
+
+
+def test_parse_date_iso_8601_z_suffix():
+    """ISO-8601 with Z suffix still parses."""
+    dt = _parse_date("2026-06-05T14:21:12Z")
+    assert dt is not None
+    assert dt.year == 2026
+    assert dt.month == 6
+
+
+def test_parse_date_naive_is_utc():
+    """Naive ISO-8601 gets UTC timezone attached."""
+    dt = _parse_date("2026-06-05T14:21:12")
+    assert dt is not None
+    assert dt.tzinfo is not None
+    assert dt.tzinfo.utcoffset(None).total_seconds() == 0
+
+
+def test_parse_date_invalid_returns_none():
+    """Unparseable strings return None without warning."""
+    result = _parse_date("not-a-date")
+    assert result is None

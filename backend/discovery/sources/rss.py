@@ -23,7 +23,12 @@ SOURCE_CAPS = {
 
 def is_rss_target(u: str) -> bool:
     clean = u.lower().split("?", 1)[0].rstrip("/")
-    return clean.endswith((".rss", ".xml", "/rss", "/feed"))
+    if clean.endswith((".rss", ".xml", "/rss", "/feed")):
+        return True
+    # /feed/<path> URLs (e.g. https://jobicy.com/feed/newjobs)
+    if "/feed/" in clean:
+        return True
+    return False
 
 
 def platform_from_url(u: str, fallback: str = "scout") -> str:

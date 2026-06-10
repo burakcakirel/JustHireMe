@@ -12,6 +12,8 @@ from discovery.sources import web
 def test_rss_target_detection():
     assert rss.is_rss_target("https://weworkremotely.com/remote-jobs.rss")
     assert rss.is_rss_target("https://example.com/feed")
+    assert rss.is_rss_target("https://jobicy.com/feed/newjobs")
+    assert rss.is_rss_target("https://example.com/feed/some/path")
     assert not rss.is_rss_target("https://weworkremotely.com/categories/remote-programming-jobs")
 
 

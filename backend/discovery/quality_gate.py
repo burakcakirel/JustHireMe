@@ -86,13 +86,22 @@ def _parse_date(value: str) -> datetime | None:
         if unit == "hour":
             return now - timedelta(hours=amount)
         return now - timedelta(days=days)
+    # ISO-8601 with colon timezone offset (e.g. 2026-06-05T14:21:12+00:00)
+    # is rejected by email.utils.parsedate_to_datetime, so try fromisoformat first.
+    try:
+        parsed = datetime.fromisoformat(raw)
+        if parsed.tzinfo is None:
+            parsed = parsed.replace(tzinfo=timezone.utc)
+        return parsed
+    except ValueError:
+        pass
     try:
         parsed = parsedate_to_datetime(raw)
         if parsed.tzinfo is None:
             parsed = parsed.replace(tzinfo=timezone.utc)
         return parsed
-    except Exception as log_exc:
-        logging.getLogger(__name__).warning('suppressed exception in backend/discovery/quality_gate.py:_parse_date: %s', log_exc)
+    except Exception:
+        logging.getLogger(__name__).debug("date parse fallback: %s", raw)
         pass
     for fmt in ("%Y-%m-%dT%H:%M:%SZ", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%b %d, %Y", "%d %b %Y"):
         try:
